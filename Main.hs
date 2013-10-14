@@ -11,6 +11,7 @@ data Context = Context String deriving Show
 
 
 data TodoItem = TodoItem {
+  dateCompleted :: Maybe Date,
   priority :: Maybe Char,
   dateCreated :: Maybe Date,
   projects :: [Project],
@@ -21,7 +22,8 @@ data TodoItem = TodoItem {
 todoSample = unlines [
   "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home",
   "2013-09-21 Email Will arranging time to catch up @online +leading-kg",
-  "2013-09-20 Read Acts +leading-kg"
+  "x 2013-10-12 2013-09-20 Read Acts +leading-kg",
+  "x 2013-10-12 Something else"
   ]
 
 
@@ -33,20 +35,20 @@ eol = char '\n'
 
 line :: GenParser Char st TodoItem
 line = do
+  dateCompleted <- optionMaybe completion
   p <- optionMaybe priorityField
   created <- optionMaybe date
   words <- sepBy word (char ' ')
   let (ps, cs) = partitionEithers $ catMaybes words
-    in return (TodoItem p created ps cs)
+    in return (TodoItem dateCompleted p created ps cs)
 
 
+completion = char 'x' >> char ' ' >> date
 
 word :: GenParser Char st (Maybe (Either Project Context))
 word = (try project >>= return . Just . Left)
        <|> (try context >>= return . Just . Right)
        <|> (bareword >> return Nothing)
-
-
 
 project = do
   char '+'
