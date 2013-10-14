@@ -1,5 +1,20 @@
-
 import Text.ParserCombinators.Parsec
+
+
+type Date = (String, String, String)
+
+type Project = (String, String)
+type Context = (String, String)
+
+
+
+data TodoItem = TodoItem {
+  priority :: Maybe Char,
+  dateCreated :: Maybe Date,
+  projects :: [Project],
+  contexts :: [Context]
+} deriving Show
+
 
 todoSample = unlines [
   "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home",
@@ -8,20 +23,38 @@ todoSample = unlines [
   ]
 
 
-todoTxtFile :: GenParser Char st [(Maybe Char, Maybe (String, String, String), String)]
+todoTxtFile :: GenParser Char st [TodoItem]
 todoTxtFile = endBy line eol
 
 eol :: GenParser Char st Char
 eol = char '\n'
 
-line :: GenParser Char st (Maybe Char, Maybe (String, String, String), String)
+line :: GenParser Char st TodoItem
 line = do
-  p <- optionMaybe priority
+  p <- optionMaybe priorityField
   created <- optionMaybe date
-  rest <- many (noneOf "\n")
-  return (p, created, rest)
+  words <- sepBy word (char ' ')
+  return (TodoItem p created words [])
 
-priority =
+word = try project <|> try context
+       <|> do
+         w <- bareword
+         return ("", w)
+
+project = do
+  char '+'
+  p <- bareword
+  return ("Project", p)
+
+context = do
+  char '@'
+  c <- bareword
+  return ("Context", c)
+
+bareword = many (noneOf " \n")
+
+
+priorityField =
   do
     char '('
     p <- letter
@@ -40,7 +73,7 @@ date = do
   return (year, month, day)
 
 
-parseTodoTxt :: String -> Either ParseError [(Maybe Char, Maybe (String, String, String), String)]
+parseTodoTxt :: String -> Either ParseError [TodoItem]
 parseTodoTxt input = parse todoTxtFile "(unknown)" input
 
 
