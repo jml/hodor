@@ -36,8 +36,8 @@ line = do
   p <- optionMaybe priorityField
   created <- optionMaybe date
   words <- sepBy word (char ' ')
-  let projectsAndContexts = partitionEithers $ catMaybes words
-    in return (TodoItem p created (fst projectsAndContexts) (snd projectsAndContexts))
+  let (ps, cs) = partitionEithers $ catMaybes words
+    in return (TodoItem p created ps cs)
 
 
 
@@ -45,8 +45,6 @@ word :: GenParser Char st (Maybe (Either Project Context))
 word = (try project >>= return . Just . Left)
        <|> (try context >>= return . Just . Right)
        <|> (bareword >> return Nothing)
-
-
 
 
 
