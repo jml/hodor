@@ -3,16 +3,15 @@ import Text.ParserCombinators.Parsec
 
 type Date = (String, String, String)
 
-type Project = (String, String)
-type Context = (String, String)
+data Project = Project String deriving Show
+data Context = Context String deriving Show
 
 
 
 data TodoItem = TodoItem {
   priority :: Maybe Char,
   dateCreated :: Maybe Date,
-  projects :: [Project],
-  contexts :: [Context]
+  projects :: [Maybe (Either Project Context)]
 } deriving Show
 
 
@@ -34,22 +33,23 @@ line = do
   p <- optionMaybe priorityField
   created <- optionMaybe date
   words <- sepBy word (char ' ')
-  return (TodoItem p created words [])
+  return (TodoItem p created words)
 
-word = try project <|> try context
-       <|> do
-         w <- bareword
-         return ("", w)
+
+word :: GenParser Char st (Maybe (Either Project Context))
+word = (try project >>= return . Just . Left)
+       <|> (try context >>= return . Just . Right)
+       <|> (bareword >> return Nothing)
 
 project = do
   char '+'
   p <- bareword
-  return ("Project", p)
+  return $ Project p
 
 context = do
   char '@'
   c <- bareword
-  return ("Context", c)
+  return $ Context c
 
 bareword = many (noneOf " \n")
 
