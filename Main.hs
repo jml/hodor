@@ -1,3 +1,5 @@
+import Data.Either
+import Data.Maybe
 import Text.ParserCombinators.Parsec
 
 
@@ -11,7 +13,8 @@ data Context = Context String deriving Show
 data TodoItem = TodoItem {
   priority :: Maybe Char,
   dateCreated :: Maybe Date,
-  projects :: [Maybe (Either Project Context)]
+  projects :: [Project],
+  contexts :: [Context]
 } deriving Show
 
 
@@ -33,13 +36,19 @@ line = do
   p <- optionMaybe priorityField
   created <- optionMaybe date
   words <- sepBy word (char ' ')
-  return (TodoItem p created words)
+  let projectsAndContexts = partitionEithers $ catMaybes words
+    in return (TodoItem p created (fst projectsAndContexts) (snd projectsAndContexts))
+
 
 
 word :: GenParser Char st (Maybe (Either Project Context))
 word = (try project >>= return . Just . Left)
        <|> (try context >>= return . Just . Right)
        <|> (bareword >> return Nothing)
+
+
+
+
 
 project = do
   char '+'
