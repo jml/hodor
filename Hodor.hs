@@ -2,6 +2,7 @@ module Hodor where
 
 import Data.Either
 import Data.Maybe
+import Data.Time
 -- Is this the modern way to import it?
 import Text.ParserCombinators.Parsec
 
@@ -13,9 +14,9 @@ data Context = Context String deriving (Show, Eq)
 
 
 data TodoItem = TodoItem {
-  dateCompleted :: Maybe Date,
+  dateCompleted :: Maybe Day,
   priority :: Maybe Char,
-  dateCreated :: Maybe Date,
+  dateCreated :: Maybe Day,
   projects :: [Project],
   contexts :: [Context]
 } deriving (Show, Eq)
@@ -74,7 +75,6 @@ priorityField =
     return p
 
 
--- XXX: I bet this can be expressed more succinctly
 date = do
   year <- count 4 digit
   char '-'
@@ -82,8 +82,7 @@ date = do
   char '-'
   day <- count 2 digit
   char ' '
-  -- XXX: Figure out the actual date type and return that.
-  return (year, month, day)
+  return $ fromGregorian (read year) (read month) (read day)
 
 
 -- XXX: Possibly replace (parseTodoText todoSample) in main by inlining its
