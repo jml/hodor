@@ -1,4 +1,17 @@
-module Hodor where
+module Hodor (
+  contexts,
+  dateCreated,
+  dateCompleted,
+  description,
+  priority,
+  projects,
+  defaultTodoItem,
+  todoTxtFile,
+  todoTxtLine,
+  Project (Project),
+  Context (Context),
+  Priority
+  ) where
 
 import Control.Monad (liftM)
 import Data.Either (partitionEithers)
@@ -7,13 +20,15 @@ import Data.Time (Day, fromGregorian)
 import Text.ParserCombinators.Parsec
 
 
-data Project = Project { projectName :: String } deriving (Show, Eq)
+type Priority = Char
+
+data Project = Project String deriving (Show, Eq)
 data Context = Context String deriving (Show, Eq)
 
 
 data TodoItem = TodoItem {
   dateCompleted :: Maybe Day,
-  priority :: Maybe Char,
+  priority :: Maybe Priority,
   dateCreated :: Maybe Day,
   projects :: [Project],
   contexts :: [Context],
