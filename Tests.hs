@@ -27,22 +27,28 @@ main = hspec $ do
       testParse Hodor.context "@foo" `shouldBeRight` Context "foo"
   describe "hodor.todo line" $ do
     it "parses done items" $ do
-      testParse Hodor.line "x 2013-10-12 2013-09-20 A done task +some-project"
+      let input = "x 2013-10-12 2013-09-20 A done task +some-project"
+      testParse Hodor.line input
         `shouldBeRight` defaultTodoItem { dateCompleted = Just (fromGregorian 2013 10 12),
                                           dateCreated = Just (fromGregorian 2013 9 20),
-                                          projects = [Project "some-project"] }
+                                          projects = [Project "some-project"],
+                                          description = input }
+      let input = "x 2013-10-12 Something else"
       testParse Hodor.line
-        "x 2013-10-12 Something else"
-        `shouldBeRight` defaultTodoItem { dateCompleted = Just (fromGregorian 2013 10 12) }
+        input
+        `shouldBeRight` defaultTodoItem { dateCompleted = Just (fromGregorian 2013 10 12),
+                                          description = input }
     it "parses incomplete items" $ do
-      testParse Hodor.line
-        "2013-09-21 Email John arranging time to catch up @online +some-project"
+      let input = "2013-09-21 Email John arranging time to catch up @online +some-project"
+      testParse Hodor.line input
         `shouldBeRight` defaultTodoItem { dateCreated = Just (fromGregorian 2013 9 21),
                                           projects = [Project "some-project"],
-                                          contexts = [Context "online"] }
-      testParse Hodor.line
-        "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home"
+                                          contexts = [Context "online"],
+                                          description = input }
+      let input = "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home"
+      testParse Hodor.line input
         `shouldBeRight` defaultTodoItem { dateCreated = Just (fromGregorian 2013 9 27),
                                           projects = [Project "condensation"],
                                           contexts = [Context "home"],
-                                          priority = Just 'B' }
+                                          priority = Just 'B',
+                                          description = input }

@@ -19,7 +19,8 @@ data TodoItem = TodoItem {
   priority :: Maybe Char,
   dateCreated :: Maybe Day,
   projects :: [Project],
-  contexts :: [Context]
+  contexts :: [Context],
+  description :: String
 } deriving (Show, Eq)
 
 
@@ -27,7 +28,8 @@ defaultTodoItem = TodoItem { dateCompleted = Nothing,
                              priority = Nothing,
                              dateCreated = Nothing,
                              projects = [],
-                             contexts = [] }
+                             contexts = [],
+                             description = "" }
 
 todoTxtFile :: Parser [TodoItem]
 todoTxtFile = endBy line eol
@@ -37,11 +39,12 @@ eol = char '\n'
 
 line :: Parser TodoItem
 line = do
+  all <- getInput
   completed <- optionMaybe completion
   p <- optionMaybe priorityField
   created <- optionMaybe date
   (ps, cs) <- liftM (partitionEithers . catMaybes) (sepBy word (char ' '))
-  return (TodoItem completed p created ps cs)
+  return (TodoItem completed p created ps cs all)
 
 
 completion = char 'x' >> char ' ' >> date
