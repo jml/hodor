@@ -1,5 +1,6 @@
 module Hodor where
 
+import Control.Monad (liftM)
 import Data.Either
 import Data.Maybe
 import Data.Time
@@ -49,8 +50,8 @@ completion = char 'x' >> char ' ' >> date
 -- XXX: This is pretty hideous, I wonder if there's a better way.
 -- Suggestion: a rest-of-line: Parser [Either Project Context]
 word :: Parser (Maybe (Either Project Context))
-word =     (try project >>= return . Just . Left)
-       <|> (try context >>= return . Just . Right)
+word =     liftM (Just . Left) (try project)
+       <|> liftM (Just . Right) (try context)
        <|> (bareword >> return Nothing)
 
 project = do
@@ -93,4 +94,4 @@ date = do
 -- line number and with full text.  something like:
 --   (i, line, parsed(line)) for i, line in enumerate(lines)
 parseTodoTxt :: String -> Either ParseError [TodoItem]
-parseTodoTxt input = parse todoTxtFile "(unknown)" input
+parseTodoTxt = parse todoTxtFile "(unknown)"

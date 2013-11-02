@@ -6,12 +6,12 @@ import Hodor
 
 
 instance Eq ParseError where
-  (==) a b = (show a) == (show b)
+  (==) a b = show a == show b
 
 
-testParse parser example = parse parser "(unknown)" example
+testParse parser = parse parser "(unknown)"
 
-x `shouldBeRight` y = x `shouldBe` (Right y)
+x `shouldBeRight` y = x `shouldBe` Right y
 
 
 main :: IO ()
