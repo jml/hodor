@@ -1,14 +1,11 @@
 module Hodor where
 
 import Control.Monad (liftM)
-import Data.Either
-import Data.Maybe
-import Data.Time
--- Is this the modern way to import it?
+import Data.Either (partitionEithers)
+import Data.Maybe (catMaybes)
+import Data.Time (Day, fromGregorian)
 import Text.ParserCombinators.Parsec
 
-
-type Date = (String, String, String)
 
 data Project = Project { projectName :: String } deriving (Show, Eq)
 data Context = Context String deriving (Show, Eq)
@@ -23,7 +20,6 @@ data TodoItem = TodoItem {
   description :: String
 } deriving (Show, Eq)
 
-
 defaultTodoItem = TodoItem { dateCompleted = Nothing,
                              priority = Nothing,
                              dateCreated = Nothing,
@@ -31,43 +27,33 @@ defaultTodoItem = TodoItem { dateCompleted = Nothing,
                              contexts = [],
                              description = "" }
 
+
+-- XXX: Don't just want to parse metadata, but also need to associate with
+-- line number and with full text.  something like:
+--   (i, line, parsed(line)) for i, line in enumerate(lines)
+parseTodoTxt :: String -> Either ParseError [TodoItem]
+parseTodoTxt = parse todoTxtFile "(unknown)"
+
+
 todoTxtFile :: Parser [TodoItem]
-todoTxtFile = endBy line eol
+todoTxtFile = endBy todoTxtLine p_eol
 
-eol :: Parser Char
-eol = char '\n'
+p_eol :: Parser Char
+p_eol = char '\n'
 
-line :: Parser TodoItem
-line = do
+todoTxtLine :: Parser TodoItem
+todoTxtLine = do
   all <- getInput
-  completed <- optionMaybe completion
-  p <- optionMaybe priorityField
-  created <- optionMaybe date
-  (ps, cs) <- liftM (partitionEithers . catMaybes) (sepBy word (char ' '))
+  completed <- optionMaybe p_completion
+  p <- optionMaybe p_priority
+  created <- optionMaybe p_date
+  (ps, cs) <- p_projectsAndContexts
   return (TodoItem completed p created ps cs all)
 
 
-completion = char 'x' >> char ' ' >> date
+p_completion = char 'x' >> char ' ' >> p_date
 
-word :: Parser (Maybe (Either Project Context))
-word =     liftM (Just . Left) (try project)
-       <|> liftM (Just . Right) (try context)
-       <|> (bareword >> return Nothing)
-
-project = do
-  char '+'
-  p <- bareword
-  return $ Project p
-
-context = do
-  char '@'
-  c <- bareword
-  return $ Context c
-
-bareword = many (noneOf " \n")
-
-
-priorityField =
+p_priority =
   do
     char '('
     p <- letter
@@ -75,8 +61,7 @@ priorityField =
     char ' '
     return p
 
-
-date = do
+p_date = do
   year <- count 4 digit
   char '-'
   month <- count 2 digit
@@ -85,13 +70,23 @@ date = do
   char ' '
   return $ fromGregorian (read year) (read month) (read day)
 
+p_projectsAndContexts =
+  liftM (partitionEithers . catMaybes) (sepBy p_word (char ' '))
 
--- XXX: Possibly replace (parseTodoText todoSample) in main by inlining its
--- definition and supplying `parse` with the filename, so that it comes out as
---   case parse todoTxtFile filename file_contents of -> ...
 
--- XXX: Don't just want to parse metadata, but also need to associate with
--- line number and with full text.  something like:
---   (i, line, parsed(line)) for i, line in enumerate(lines)
-parseTodoTxt :: String -> Either ParseError [TodoItem]
-parseTodoTxt = parse todoTxtFile "(unknown)"
+p_word :: Parser (Maybe (Either Project Context))
+p_word =     liftM (Just . Left) (try p_project)
+         <|> liftM (Just . Right) (try p_context)
+         <|> (p_bareword >> return Nothing)
+
+p_project = do
+  char '+'
+  p <- p_bareword
+  return $ Project p
+
+p_context = do
+  char '@'
+  c <- p_bareword
+  return $ Context c
+
+p_bareword = many (noneOf " \n")
