@@ -8,8 +8,8 @@ import Text.ParserCombinators.Parsec
 
 type Date = (String, String, String)
 
-data Project = Project String deriving Show
-data Context = Context String deriving Show
+data Project = Project { projectName :: String } deriving (Show, Eq)
+data Context = Context String deriving (Show, Eq)
 
 
 data TodoItem = TodoItem {
@@ -18,8 +18,14 @@ data TodoItem = TodoItem {
   dateCreated :: Maybe Date,
   projects :: [Project],
   contexts :: [Context]
-} deriving Show
+} deriving (Show, Eq)
 
+
+defaultTodoItem = TodoItem { completed = Nothing,
+                             priority = Nothing,
+                             dateCreated = Nothing,
+                             projects = [],
+                             contexts = [] }
 
 todoTxtFile :: Parser [TodoItem]
 todoTxtFile = endBy line eol
