@@ -13,7 +13,7 @@ data Context = Context String deriving (Show, Eq)
 
 
 data TodoItem = TodoItem {
-  completed :: Maybe Date,
+  dateCompleted :: Maybe Date,
   priority :: Maybe Char,
   dateCreated :: Maybe Date,
   projects :: [Project],
@@ -21,7 +21,7 @@ data TodoItem = TodoItem {
 } deriving (Show, Eq)
 
 
-defaultTodoItem = TodoItem { completed = Nothing,
+defaultTodoItem = TodoItem { dateCompleted = Nothing,
                              priority = Nothing,
                              dateCreated = Nothing,
                              projects = [],
@@ -35,12 +35,12 @@ eol = char '\n'
 
 line :: Parser TodoItem
 line = do
-  dateCompleted <- optionMaybe completion
+  completed <- optionMaybe completion
   p <- optionMaybe priorityField
   created <- optionMaybe date
   words <- sepBy word (char ' ')
   let (ps, cs) = partitionEithers $ catMaybes words
-  return (TodoItem dateCompleted p created ps cs)
+  return (TodoItem completed p created ps cs)
 
 
 completion = char 'x' >> char ' ' >> date

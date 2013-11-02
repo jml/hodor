@@ -27,12 +27,12 @@ main = hspec $ do
   describe "hodor.todo line" $ do
     it "parses done items" $ do
       testParse Hodor.line "x 2013-10-12 2013-09-20 A done task +some-project"
-        `shouldBeRight` defaultTodoItem { completed = Just ("2013", "10", "12"),
+        `shouldBeRight` defaultTodoItem { dateCompleted = Just ("2013", "10", "12"),
                                           dateCreated = Just ("2013", "09", "20"),
                                           projects = [Project "some-project"] }
       testParse Hodor.line
         "x 2013-10-12 Something else"
-        `shouldBeRight` defaultTodoItem { completed = Just ("2013", "10", "12") }
+        `shouldBeRight` defaultTodoItem { dateCompleted = Just ("2013", "10", "12") }
     it "parses incomplete items" $ do
       testParse Hodor.line
         "2013-09-21 Email John arranging time to catch up @online +some-project"
