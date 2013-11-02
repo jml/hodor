@@ -40,15 +40,12 @@ line = do
   completed <- optionMaybe completion
   p <- optionMaybe priorityField
   created <- optionMaybe date
-  words <- sepBy word (char ' ')
-  let (ps, cs) = partitionEithers $ catMaybes words
+  (ps, cs) <- liftM (partitionEithers . catMaybes) (sepBy word (char ' '))
   return (TodoItem completed p created ps cs)
 
 
 completion = char 'x' >> char ' ' >> date
 
--- XXX: This is pretty hideous, I wonder if there's a better way.
--- Suggestion: a rest-of-line: Parser [Either Project Context]
 word :: Parser (Maybe (Either Project Context))
 word =     liftM (Just . Left) (try project)
        <|> liftM (Just . Right) (try context)
