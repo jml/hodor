@@ -13,13 +13,13 @@ projectReview :: TodoFile -> String
 projectReview = concat . map renderProjectAndItems . groupByProjects . items
 
 
+
+
 parseFile filename = do
-  todo_h <- openFile filename ReadMode
-  contents <- hGetContents todo_h
+  contents <- readFile filename
   putStrLn $ case parseTodoFile filename contents of
     Left error -> show error
     Right todoFile -> projectReview todoFile
-  hClose todo_h
 
 
 -- XXX: How do you do command-line arguments?
