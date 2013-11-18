@@ -3,6 +3,8 @@ module Hodor (
   dateCreated,
   dateCompleted,
   description,
+  groupByProjects,
+  items,
   priority,
   projects,
   defaultTodoItem,
@@ -10,11 +12,18 @@ module Hodor (
   todoTxtLine,
   Project (Project),
   Context (Context),
-  Priority
+  Priority,
+  TodoItem,
+  TodoFile,
+  parseTodoFile
   ) where
 
+import Control.Arrow (first)
 import Control.Monad (liftM)
 import Data.Either (partitionEithers)
+import Data.Function (on)
+import Data.Functor ((<$>))
+import Data.List (groupBy, sort)
 import Data.Maybe (catMaybes)
 import Data.Time (Day, fromGregorian)
 import Text.ParserCombinators.Parsec
@@ -22,8 +31,15 @@ import Text.ParserCombinators.Parsec
 
 type Priority = Char
 
-data Project = Project String deriving (Show, Eq)
-data Context = Context String deriving (Show, Eq)
+data Project = Project String deriving (Eq, Ord)
+
+instance Show Project where
+  show (Project p) = '+':p
+
+data Context = Context String deriving (Eq, Ord)
+
+instance Show Context where
+  show (Context c) = '@':c
 
 
 data TodoItem = TodoItem {
@@ -33,7 +49,8 @@ data TodoItem = TodoItem {
   projects :: [Project],
   contexts :: [Context],
   description :: String
-} deriving (Show, Eq)
+} deriving (Show, Eq, Ord)
+
 
 defaultTodoItem = TodoItem { dateCompleted = Nothing,
                              priority = Nothing,
@@ -43,11 +60,34 @@ defaultTodoItem = TodoItem { dateCompleted = Nothing,
                              description = "" }
 
 
--- XXX: Don't just want to parse metadata, but also need to associate with
--- line number and with full text.  something like:
---   (i, line, parsed(line)) for i, line in enumerate(lines)
-parseTodoTxt :: String -> Either ParseError [TodoItem]
-parseTodoTxt = parse todoTxtFile "(unknown)"
+data TodoFile = TodoFile {
+  filename :: String,
+  items :: [TodoItem]
+} deriving (Show, Eq, Ord)
+
+
+
+decorate :: (a -> [b]) -> a -> [(b, a)]
+decorate f x = zip (f x) (repeat x)
+
+groupByKeys :: (Ord a, Ord b) => (a -> [b]) -> [a] -> [(b, [a])]
+groupByKeys f = map (first head . unzip) . groupBy (on (==) fst) . sort . concatMap (decorate f)
+
+groupByKey :: (Ord a, Ord b) => (a -> b) -> [a] -> [(b, [a])]
+groupByKey f = groupByKeys ((: []) . f)
+
+
+groupByProjects :: [TodoItem] -> [(Project, [TodoItem])]
+groupByProjects = groupByKeys projects
+
+
+parseTodoFile :: String -> String -> Either ParseError TodoFile
+parseTodoFile filename contents =
+  fmap (TodoFile filename) (parse todoTxtFile filename contents)
+
+
+parseTodoTxt :: String -> String -> Either ParseError [TodoItem]
+parseTodoTxt = parse todoTxtFile
 
 
 todoTxtFile :: Parser [TodoItem]
@@ -58,7 +98,7 @@ p_eol = char '\n'
 
 todoTxtLine :: Parser TodoItem
 todoTxtLine = do
-  all <- getInput
+  all <- takeWhile (/= '\n') <$> getInput
   completed <- optionMaybe p_completion
   p <- optionMaybe p_priority
   created <- optionMaybe p_date
