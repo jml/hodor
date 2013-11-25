@@ -67,17 +67,19 @@ data TodoFile = TodoFile {
 
 
 
-decorate :: (a -> [b]) -> a -> [(b, a)]
-decorate f x = zip (f x) (repeat x)
+decorate :: (a -> [b]) -> a -> [(Maybe b, a)]
+decorate f x = let keys = f x in
+               if null keys then [(Nothing, x)]
+               else zip (map Just keys) (repeat x)
 
-groupByKeys :: (Ord a, Ord b) => (a -> [b]) -> [a] -> [(b, [a])]
+groupByKeys :: (Ord a, Ord b) => (a -> [b]) -> [a] -> [(Maybe b, [a])]
 groupByKeys f = map (first head . unzip) . groupBy (on (==) fst) . sort . concatMap (decorate f)
 
-groupByKey :: (Ord a, Ord b) => (a -> b) -> [a] -> [(b, [a])]
+groupByKey :: (Ord a, Ord b) => (a -> b) -> [a] -> [(Maybe b, [a])]
 groupByKey f = groupByKeys ((: []) . f)
 
 
-groupByProjects :: [TodoItem] -> [(Project, [TodoItem])]
+groupByProjects :: [TodoItem] -> [(Maybe Project, [TodoItem])]
 groupByProjects = groupByKeys projects
 
 

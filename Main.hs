@@ -13,14 +13,16 @@ instance Error ParseError where
     strMsg s = head (lefts [(parse (fail s) "" [])])
 
 
-renderProjectAndItems :: (Project, [TodoItem]) -> String
+renderProjectAndItems :: (Maybe Project, [TodoItem]) -> String
 renderProjectAndItems (p, ts) =
-  show p ++ "\n" ++ intercalate "\n" (map (("  "++) . description) ts) ++ "\n"
+    project ++ "\n" ++ items ++ "\n"
+    where
+      project = maybe "(no project)" show p
+      items = intercalate "\n" (map (("  "++) . description) ts)
 
 
 projectReview :: [TodoItem] -> String
 projectReview = concat . map renderProjectAndItems . groupByProjects
-
 
 
 parseFile :: String -> IO (Either ParseError TodoFile)
