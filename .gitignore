@@ -4,3 +4,6 @@
 /hodor
 /todo.md
 /Main_flymake.hs
+/.cabal-sandbox/
+/dist/
+/cabal.sandbox.config
