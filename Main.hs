@@ -1,12 +1,20 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 import Control.Monad.Trans.Error (ErrorT(ErrorT), runErrorT, Error, strMsg)
 import Data.Either (lefts)
-import Data.Maybe (maybe)
 import Data.List (intercalate)
 import Data.Time
-import System.IO
 import Text.ParserCombinators.Parsec (ParseError, parse)
 
-import Hodor (dateCompleted, parseTodoFile, groupByProjects, items, description, Project, TodoItem, TodoFile)
+import Hodor (
+  dateCompleted,
+  parseTodoFile,
+  groupByProjects,
+  todoFileItems,
+  description,
+  Project,
+  TodoItem,
+  TodoFile)
 
 
 instance Error ParseError where
@@ -43,7 +51,7 @@ closedSince day = maybe True (>= day) . dateCompleted
 main :: IO ()
 main = do
   today <- getCurrentTime >>= return . utctDay
-  result <- parseFiles ["/home/jml/.todo/todo.txt", "/home/jml/.todo/done.txt"]
+  result <- parseFiles ["/Users/jml/.todo/todo.txt", "/Users/jml/.todo/done.txt"]
   putStrLn $ case result of
-    Left error -> show error
-    Right todoFiles -> projectReview $ filter (closedSince $ addDays (-7) today) $ concatMap items todoFiles
+    Left e -> show e
+    Right todoFiles -> projectReview $ filter (closedSince $ addDays (-7) today) $ concatMap todoFileItems todoFiles

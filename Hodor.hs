@@ -4,10 +4,11 @@ module Hodor (
   dateCompleted,
   description,
   groupByProjects,
-  items,
   priority,
   projects,
   defaultTodoItem,
+  todoFileItems,
+  todoFileName,
   todoTxtFile,
   todoTxtLine,
   Project (Project),
@@ -15,7 +16,8 @@ module Hodor (
   Priority,
   TodoItem,
   TodoFile,
-  parseTodoFile
+  parseTodoFile,
+  parseTodoTxt
   ) where
 
 import Control.Arrow (first)
@@ -52,6 +54,7 @@ data TodoItem = TodoItem {
 } deriving (Show, Eq, Ord)
 
 
+defaultTodoItem :: TodoItem
 defaultTodoItem = TodoItem { dateCompleted = Nothing,
                              priority = Nothing,
                              dateCreated = Nothing,
@@ -61,8 +64,8 @@ defaultTodoItem = TodoItem { dateCompleted = Nothing,
 
 
 data TodoFile = TodoFile {
-  filename :: String,
-  items :: [TodoItem]
+  todoFileName :: String,
+  todoFileItems :: [TodoItem]
 } deriving (Show, Eq, Ord)
 
 
@@ -75,20 +78,17 @@ decorate f x = let keys = f x in
 groupByKeys :: (Ord a, Ord b) => (a -> [b]) -> [a] -> [(Maybe b, [a])]
 groupByKeys f = map (first head . unzip) . groupBy (on (==) fst) . sort . concatMap (decorate f)
 
-groupByKey :: (Ord a, Ord b) => (a -> b) -> [a] -> [(Maybe b, [a])]
-groupByKey f = groupByKeys ((: []) . f)
-
 
 groupByProjects :: [TodoItem] -> [(Maybe Project, [TodoItem])]
 groupByProjects = groupByKeys projects
 
 
-parseTodoFile :: String -> String -> Either ParseError TodoFile
+parseTodoFile :: FilePath -> String -> Either ParseError TodoFile
 parseTodoFile filename contents =
   fmap (TodoFile filename) (parse todoTxtFile filename contents)
 
 
-parseTodoTxt :: String -> String -> Either ParseError [TodoItem]
+parseTodoTxt :: FilePath -> String -> Either ParseError [TodoItem]
 parseTodoTxt = parse todoTxtFile
 
 
@@ -100,16 +100,18 @@ p_eol = char '\n'
 
 todoTxtLine :: Parser TodoItem
 todoTxtLine = do
-  all <- takeWhile (/= '\n') <$> getInput
+  wholeLine <- takeWhile (/= '\n') <$> getInput
   completed <- optionMaybe p_completion
   p <- optionMaybe p_priority
   created <- optionMaybe p_date
   (ps, cs) <- p_projectsAndContexts
-  return (TodoItem completed p created ps cs all)
+  return (TodoItem completed p created ps cs wholeLine)
 
 
+p_completion :: Parser Day
 p_completion = char 'x' >> char ' ' >> p_date
 
+p_priority :: Parser Char
 p_priority =
   do
     char '('
@@ -118,6 +120,7 @@ p_priority =
     char ' '
     return p
 
+p_date :: Parser Day
 p_date = do
   year <- count 4 digit
   char '-'
@@ -127,6 +130,7 @@ p_date = do
   char ' '
   return $ fromGregorian (read year) (read month) (read day)
 
+p_projectsAndContexts :: Parser ([Project], [Context])
 p_projectsAndContexts =
   liftM (partitionEithers . catMaybes) (sepBy p_word (char ' '))
 
@@ -136,14 +140,17 @@ p_word =     liftM (Just . Left) (try p_project)
          <|> liftM (Just . Right) (try p_context)
          <|> (p_bareword >> return Nothing)
 
+p_project :: Parser Project
 p_project = do
   char '+'
   p <- p_bareword
   return $ Project p
 
+p_context :: Parser Context
 p_context = do
   char '@'
   c <- p_bareword
   return $ Context c
 
+p_bareword :: Parser String
 p_bareword = many (noneOf " \n")
