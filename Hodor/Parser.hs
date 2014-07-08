@@ -2,6 +2,8 @@ module Hodor.Parser where
 
 import Text.ParserCombinators.Parsec
 
+-- XXX: Make sure we can handle blank lines!
+
 import Control.Monad (liftM)
 import Data.Either (partitionEithers)
 import Data.Functor ((<$>))

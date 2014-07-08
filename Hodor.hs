@@ -1,3 +1,5 @@
+-- XXX: We've really weeded the core API down, so see if we can trim what we export here
+
 module Hodor (
   contexts,
   dateCreated,
@@ -14,6 +16,7 @@ module Hodor (
   Priority,
   TodoItem,
   TodoFile,
+  unparse
   ) where
 
 import Control.Arrow (first)
@@ -34,7 +37,8 @@ import Hodor.Types (
   priority,
   projects,
   todoFileItems,
-  todoFileName)
+  todoFileName,
+  unparse)
 
 
 decorate :: (a -> [b]) -> a -> [(Maybe b, a)]

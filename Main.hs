@@ -16,6 +16,7 @@ import Hodor (
   TodoItem,
   TodoFile)
 
+import qualified Hodor.CommandLine
 
 instance Error ParseError where
     strMsg s = head (lefts [(parse (fail s) "" [])])
@@ -49,9 +50,4 @@ closedSince day = maybe True (>= day) . dateCompleted
 -- XXX: How do you do command-line arguments?
 -- System.Console.GetOpt
 main :: IO ()
-main = do
-  today <- getCurrentTime >>= return . utctDay
-  result <- parseFiles ["/Users/jml/.todo/todo.txt", "/Users/jml/.todo/done.txt"]
-  putStrLn $ case result of
-    Left e -> show e
-    Right todoFiles -> projectReview $ filter (closedSince $ addDays (-7) today) $ concatMap todoFileItems todoFiles
+main = Hodor.CommandLine.main
