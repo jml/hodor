@@ -12,46 +12,41 @@ instance Eq ParseError where
   (==) a b = show a == show b
 
 
-emptyTodoItem :: TodoItem
-emptyTodoItem = TodoItem { dateCompleted = Nothing,
-                           priority = Nothing,
-                           dateCreated = Nothing,
-                           projects = [],
-                           contexts = [],
-                           description = "" }
-
-
 testParse parser = parse parser "(unknown)"
 
-x `shouldBeRight` y = x `shouldBe` Right y
+shouldHave x p y = (fmap p x) `shouldBe` (return y)
 
 
 main :: IO ()
 main = hspec $ do
   describe "hodor.todo line" $ do
-    it "parses done items" $ do
+    describe "parses done items" $ do
       let input = "x 2013-10-12 2013-09-20 A done task +some-project"
-      testParse todoTxtLine input
-        `shouldBeRight` emptyTodoItem { dateCompleted = Just (fromGregorian 2013 10 12),
-                                        dateCreated = Just (fromGregorian 2013 9 20),
-                                        projects = [Project "some-project"],
-                                        description = input }
-      let input = "x 2013-10-12 Something else"
-      testParse todoTxtLine
-        input
-        `shouldBeRight` emptyTodoItem { dateCompleted = Just (fromGregorian 2013 10 12),
-                                        description = input }
-    it "parses incomplete items" $ do
+          parsed = testParse todoTxtLine input
+      it "extracts date completed" $ do
+        shouldHave parsed dateCompleted (Just (fromGregorian 2013 10 12))
+      it "extracts date created" $ do
+        shouldHave parsed dateCreated (Just (fromGregorian 2013 9 20))
+      it "has a project" $ do
+        shouldHave parsed projects [Project "some-project"]
+
+    describe "parses incomplete items" $ do
       let input = "2013-09-21 Email John arranging time to catch up @online +some-project"
-      testParse todoTxtLine input
-        `shouldBeRight` emptyTodoItem { dateCreated = Just (fromGregorian 2013 9 21),
-                                        projects = [Project "some-project"],
-                                        contexts = [Context "online"],
-                                        description = input }
+          parsed = testParse todoTxtLine input
+      it "extracts date created" $ do
+        shouldHave parsed dateCreated (Just (fromGregorian 2013 9 21))
+      it "extracts projects" $ do
+        shouldHave parsed projects [Project "some-project"]
+      it "extracts contexts" $ do
+        shouldHave parsed contexts [Context "online"]
+
       let input = "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home"
-      testParse todoTxtLine input
-        `shouldBeRight` emptyTodoItem { dateCreated = Just (fromGregorian 2013 9 27),
-                                        projects = [Project "condensation"],
-                                        contexts = [Context "home"],
-                                        priority = Just 'B',
-                                        description = input }
+          parsed = testParse todoTxtLine input
+      it "extracts date created" $ do
+        shouldHave parsed dateCreated (Just (fromGregorian 2013 9 27))
+      it "extracts projects" $ do
+        shouldHave parsed projects [Project "condensation"]
+      it "extracts contexts" $ do
+        shouldHave parsed contexts [Context "home"]
+      it "extracts priority" $ do
+        shouldHave parsed priority (Just 'B')

@@ -12,9 +12,10 @@ import Data.Time (Day, fromGregorian)
 import Hodor.Types (
   TodoFile(TodoFile),
   TodoItem(TodoItem),
-  Project(Project),
-  Context(Context),
+  Priority,
+  Token(Bareword, ProjectToken, ContextToken),
   )
+
 
 
 parseTodoFile :: FilePath -> String -> Either ParseError TodoFile
@@ -38,8 +39,8 @@ todoTxtLine = do
   completed <- optionMaybe p_completion
   p <- optionMaybe p_priority
   created <- optionMaybe p_date
-  (ps, cs) <- p_projectsAndContexts
-  return (TodoItem completed p created ps cs wholeLine)
+  tokens <- p_tokens
+  return (TodoItem completed p created tokens)
 
 
 p_completion :: Parser Day
@@ -64,27 +65,33 @@ p_date = do
   char ' '
   return $ fromGregorian (read year) (read month) (read day)
 
-p_projectsAndContexts :: Parser ([Project], [Context])
-p_projectsAndContexts =
-  liftM (partitionEithers . catMaybes) (sepBy p_word (char ' '))
 
+p_tokens :: Parser [Token]
+p_tokens = many p_word
 
-p_word :: Parser (Maybe (Either Project Context))
-p_word =     liftM (Just . Left) (try p_project)
-         <|> liftM (Just . Right) (try p_context)
-         <|> (p_bareword >> return Nothing)
+whitespace :: [Char]
+whitespace = " \n"
 
-p_project :: Parser Project
+p_word :: Parser Token
+p_word = (try p_project)
+         <|> (try p_context)
+         <|> (fmap Bareword p_bareword)
+         <|> (fmap Bareword p_whitespace)
+
+p_project :: Parser Token
 p_project = do
   char '+'
   p <- p_bareword
-  return $ Project p
+  return $ ProjectToken p
 
-p_context :: Parser Context
+p_context :: Parser Token
 p_context = do
   char '@'
   c <- p_bareword
-  return $ Context c
+  return $ ContextToken c
 
 p_bareword :: Parser String
-p_bareword = many (noneOf " \n")
+p_bareword = many1 (noneOf whitespace)
+
+p_whitespace :: Parser String
+p_whitespace = many1 (oneOf whitespace)
