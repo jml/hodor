@@ -29,6 +29,10 @@ main = hspec $ do
         shouldHave parsed dateCreated (Just (fromGregorian 2013 9 20))
       it "has a project" $ do
         shouldHave parsed projects [Project "some-project"]
+      it "can be described" $ do
+        shouldHave parsed description "A done task +some-project"
+      it "can be described" $ do
+        shouldHave parsed unparse input
 
     describe "parses incomplete items" $ do
       let input = "2013-09-21 Email John arranging time to catch up @online +some-project"
@@ -39,6 +43,8 @@ main = hspec $ do
         shouldHave parsed projects [Project "some-project"]
       it "extracts contexts" $ do
         shouldHave parsed contexts [Context "online"]
+      it "can be described" $ do
+        shouldHave parsed unparse input
 
       let input = "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home"
           parsed = testParse todoTxtLine input
@@ -50,3 +56,5 @@ main = hspec $ do
         shouldHave parsed contexts [Context "home"]
       it "extracts priority" $ do
         shouldHave parsed priority (Just 'B')
+      it "can be described" $ do
+        shouldHave parsed unparse input

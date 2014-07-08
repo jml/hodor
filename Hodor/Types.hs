@@ -1,6 +1,8 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module Hodor.Types where
 
-import Data.Time (Day)
+import Data.Time (Day, showGregorian)
 
 type Priority = Char
 
@@ -17,11 +19,27 @@ instance Show Context where
 
 data Token = Bareword String | ProjectToken String | ContextToken String deriving (Eq, Ord, Show)
 
+class Unparse a where
+  unparse :: a -> String
 
-formatToken :: Token -> String
-formatToken (Bareword string) = string
-formatToken (ProjectToken string) = '+':string
-formatToken (ContextToken string) = '@':string
+
+instance Unparse Token where
+  unparse (Bareword string) = string
+  unparse (ProjectToken string) = '+':string
+  unparse (ContextToken string) = '@':string
+
+
+instance (Unparse a) => Unparse (Maybe a) where
+  unparse Nothing = ""
+  unparse (Just x) = unparse x
+
+
+instance Unparse Day where
+  unparse = showGregorian
+
+
+instance Unparse Priority where
+  unparse p = ['(', p, ')', ' ']
 
 
 data TodoItem = TodoItem {
@@ -38,10 +56,6 @@ defaultTodoItem = TodoItem { dateCompleted = Nothing,
                              dateCreated = Nothing,
                              tokens = [] }
 
--- XXX: Restore description
--- XXX: Restore projects
--- XXX: Restore contexts
-
 projects :: TodoItem -> [Project]
 projects item = [ Project p | ProjectToken p <- (tokens item) ]
 
@@ -49,11 +63,16 @@ contexts :: TodoItem -> [Context]
 contexts item = [ Context p | ContextToken p <- (tokens item) ]
 
 description :: TodoItem -> String
-description item = concatMap formatToken (tokens item)
+description item = concatMap unparse (tokens item)
+
+instance Unparse TodoItem where
+  unparse item = concat $
+    case (dateCompleted item) of
+      Nothing -> [unparse (priority item), unparse (dateCreated item), " ", (description item)]
+      Just completed -> ["x ", unparse completed, " ", unparse (dateCreated item), " ", (description item)]
 
 
 data TodoFile = TodoFile {
   todoFileName :: String,
   todoFileItems :: [TodoItem]
 } deriving (Show, Eq, Ord)
-
