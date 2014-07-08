@@ -75,6 +75,12 @@ main = hspec $ do
       it "can be described" $ do
         shouldHave parsed unparse input
 
+    describe "simple line" $ do
+      let input = "Do a thing"
+          parsed = testParse todoTxtLine input
+      it "can be described" $ do
+        shouldHave parsed unparse input
+
   describe "hodor.todo file" $ do
     describe "empty file" $ do
       let input = ""

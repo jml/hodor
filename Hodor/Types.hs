@@ -35,7 +35,7 @@ instance (Unparse a) => Unparse (Maybe a) where
 
 
 instance Unparse Day where
-  unparse = showGregorian
+  unparse x = showGregorian x ++ " "
 
 
 instance Unparse Priority where
@@ -68,8 +68,8 @@ description item = concatMap unparse (tokens item)
 instance Unparse TodoItem where
   unparse item = concat $
     case (dateCompleted item) of
-      Nothing -> [unparse (priority item), unparse (dateCreated item), " ", (description item)]
-      Just completed -> ["x ", unparse completed, " ", unparse (dateCreated item), " ", (description item)]
+      Nothing -> [unparse (priority item), unparse (dateCreated item), (description item)]
+      Just completed -> ["x ", unparse completed, unparse (dateCreated item), (description item)]
 
 
 data TodoFile = TodoFile {
