@@ -61,6 +61,7 @@ parseFile :: String -> IO (Either IOError TodoFile)
 parseFile filename = do
   contents <- readFile filename
   return $ case parseTodoFile filename contents of
+    -- XXX: It's not obvious that this is the best way to raise the error
     Left e -> Left (userError (show e))
     Right result -> Right result
 
