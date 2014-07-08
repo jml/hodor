@@ -13,9 +13,14 @@ import Hodor.Types (
   description,
   priority,
   projects,
+  todoFileItems,
+  todoFileName,
   unparse,
   )
-import Hodor.Parser (todoTxtLine)
+import Hodor.Parser (
+  parseTodoFile,
+  todoTxtLine,
+  )
 
 
 instance Eq ParseError where
@@ -69,3 +74,22 @@ main = hspec $ do
         shouldHave parsed priority (Just 'B')
       it "can be described" $ do
         shouldHave parsed unparse input
+
+  describe "hodor.todo file" $ do
+    describe "empty file" $ do
+      let input = ""
+          output = parseTodoFile "test-todo" input
+      it "has no items" $ do
+        shouldHave output todoFileItems []
+      it "has the given name" $ do
+        shouldHave output todoFileName "test-todo"
+    describe "blank lines" $ do
+      it "are skipped" $ do
+        let input = "\n\n"
+            output = parseTodoFile "test-todo" input
+        shouldHave output todoFileItems []
+    describe "single line" $ do
+      it "is parsed" $ do
+        let input = "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home\n"
+            output = parseTodoFile "test-todo" input
+        fmap todoFileItems output `shouldBe` fmap (\x -> [x]) (testParse todoTxtLine input)

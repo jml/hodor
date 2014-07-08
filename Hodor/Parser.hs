@@ -1,14 +1,10 @@
 module Hodor.Parser where
 
+import Data.Char (isSpace)
 import Text.ParserCombinators.Parsec
 
 -- XXX: Make sure we can handle blank lines!
 
-import Control.Monad (liftM)
-import Data.Either (partitionEithers)
-import Data.Functor ((<$>))
-
-import Data.Maybe (catMaybes)
 import Data.Time (Day, fromGregorian)
 
 import Hodor.Types (
@@ -17,7 +13,6 @@ import Hodor.Types (
   Priority,
   Token(Bareword, ProjectToken, ContextToken),
   )
-
 
 
 parseTodoFile :: FilePath -> String -> Either ParseError TodoFile
@@ -30,25 +25,32 @@ parseTodoTxt = parse todoTxtFile
 
 
 todoTxtFile :: Parser [TodoItem]
-todoTxtFile = endBy todoTxtLine p_eol
+todoTxtFile = do
+  todoLines <- endBy p_todoTxtLine p_eol
+  return [ x | Just x <- todoLines ]
+
 
 p_eol :: Parser Char
 p_eol = char '\n'
 
+p_todoTxtLine :: Parser (Maybe TodoItem)
+p_todoTxtLine = try (many (oneOf " \t") >> lookAhead p_eol >> return Nothing)
+                <|> (fmap Just todoTxtLine)
+
+
 todoTxtLine :: Parser TodoItem
 todoTxtLine = do
-  wholeLine <- takeWhile (/= '\n') <$> getInput
   completed <- optionMaybe p_completion
   p <- optionMaybe p_priority
   created <- optionMaybe p_date
-  tokens <- p_tokens
-  return (TodoItem completed p created tokens)
+  todo_tokens <- p_tokens
+  return $ TodoItem completed p created todo_tokens
 
 
 p_completion :: Parser Day
 p_completion = char 'x' >> char ' ' >> p_date
 
-p_priority :: Parser Char
+p_priority :: Parser Priority
 p_priority =
   do
     char '('
@@ -71,13 +73,10 @@ p_date = do
 p_tokens :: Parser [Token]
 p_tokens = many p_word
 
-whitespace :: [Char]
-whitespace = " \n"
-
 p_word :: Parser Token
 p_word = (try p_project)
          <|> (try p_context)
-         <|> (fmap Bareword p_bareword)
+         <|> try (fmap Bareword p_bareword)
          <|> (fmap Bareword p_whitespace)
 
 p_project :: Parser Token
@@ -93,7 +92,7 @@ p_context = do
   return $ ContextToken c
 
 p_bareword :: Parser String
-p_bareword = many1 (noneOf whitespace)
+p_bareword = many1 (satisfy (not . isSpace))
 
 p_whitespace :: Parser String
-p_whitespace = many1 (oneOf whitespace)
+p_whitespace = many1 (oneOf " \t")
