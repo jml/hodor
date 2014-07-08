@@ -11,6 +11,7 @@ import Hodor (
   , todoFileItems
   , unparse
   )
+import Hodor.File (expandUser)
 
 
 data Config = Config {
@@ -67,10 +68,16 @@ parseFile filename = do
 
 
 -- XXX: Is there a better way of doing this?
-getConfiguration :: [Flag] -> Config
-getConfiguration ((TodoFile path):xs) = (getConfiguration xs) { todoFilePath = path }
-getConfiguration ((DoneFile path):xs) = (getConfiguration xs) { doneFilePath = path }
-getConfiguration [] = defaultConfig
+getConfiguration :: [Flag] -> IO Config
+getConfiguration ((TodoFile path):xs) = do
+  config <- (getConfiguration xs)
+  fullPath <- expandUser path
+  return $ config { todoFilePath = fullPath }
+getConfiguration ((DoneFile path):xs) = do
+  config <- (getConfiguration xs)
+  fullPath <- expandUser path
+  return $ config { doneFilePath = fullPath }
+getConfiguration [] = return defaultConfig
 
 
 
@@ -78,7 +85,7 @@ main :: IO ()
 main = do
   argv <- getArgs
   (opts, args) <- failIfLeft (hodorOpts argv)
-  let config = getConfiguration opts
+  config <- getConfiguration opts
   result <- parseFile (todoFilePath config)
   todoFile <- failIfLeft result
   putStrLn $ intercalate "\n" $ map unparse (todoFileItems todoFile)
