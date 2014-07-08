@@ -4,8 +4,18 @@ import Data.Time (fromGregorian)
 import Test.Hspec
 import Text.ParserCombinators.Parsec (ParseError, parse)
 
-import Hodor.Types
-import Hodor.Parser
+import Hodor.Types (
+  Context(Context),
+  Project(Project),
+  contexts,
+  dateCompleted,
+  dateCreated,
+  description,
+  priority,
+  projects,
+  unparse,
+  )
+import Hodor.Parser (todoTxtLine)
 
 
 instance Eq ParseError where
@@ -46,6 +56,7 @@ main = hspec $ do
       it "can be described" $ do
         shouldHave parsed unparse input
 
+    describe "parses complicated incomplete items" $ do
       let input = "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home"
           parsed = testParse todoTxtLine input
       it "extracts date created" $ do
