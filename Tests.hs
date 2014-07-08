@@ -1,3 +1,5 @@
+module Main where
+
 import Data.Time (fromGregorian)
 import Test.Hspec
 import Text.ParserCombinators.Parsec (ParseError, parse)
