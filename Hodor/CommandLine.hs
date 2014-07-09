@@ -72,6 +72,10 @@ getConfiguration ((DoneFile path):xs) = do
 getConfiguration [] = return defaultConfig
 
 
+todoList :: TodoFile -> [String] -> IO ()
+todoList todoFile _ = do
+  putStrLn $ intercalate "\n" $ map unparse (todoFileItems todoFile)
+
 
 main :: IO ()
 main = do
@@ -84,4 +88,4 @@ main = do
   todoFile <- case result of
     Left e -> ioError $ userError $ show e
     Right r -> return r
-  putStrLn $ intercalate "\n" $ map unparse (todoFileItems todoFile)
+  todoList todoFile args
