@@ -1,6 +1,5 @@
 module Hodor.CommandLine where
 
-import Data.List ( intercalate )
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
 import System.Console.GetOpt
@@ -86,7 +85,7 @@ type HodorCommand = Config -> [String] -> IO ()
 cmdList :: HodorCommand
 cmdList config _ = do
   todoFile <- readTodoFileEx (todoFilePath config)
-  putStrLn $ intercalate "\n" $ map unparse (todoFileItems todoFile)
+  putStr $ unlines $ map unparse (todoFileItems todoFile)
 
 
 commands :: M.Map String HodorCommand
