@@ -1,11 +1,13 @@
-module Hodor.Parser where
+module Hodor.Parser (
+  parseTodoFile,
+  parseTodoTxt,
+  todoTxtFile,
+  todoTxtLine
+  ) where
 
 import Data.Char (isSpace)
-import Text.ParserCombinators.Parsec
-
--- XXX: Make sure we can handle blank lines!
-
 import Data.Time (Day, fromGregorian)
+import Text.ParserCombinators.Parsec
 
 import Hodor.Types (
   TodoFile(TodoFile),
@@ -15,9 +17,11 @@ import Hodor.Types (
   )
 
 
+-- XXX: Should we completely wrap ParseError, hiding it from the public APIs?
+
 parseTodoFile :: FilePath -> String -> Either ParseError TodoFile
 parseTodoFile filename contents =
-  fmap (TodoFile filename) (parse todoTxtFile filename contents)
+  fmap (TodoFile filename) (parseTodoTxt filename contents)
 
 
 parseTodoTxt :: FilePath -> String -> Either ParseError [TodoItem]

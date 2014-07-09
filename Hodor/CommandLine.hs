@@ -5,8 +5,9 @@ import Data.Maybe ( fromMaybe )
 import System.Console.GetOpt
 import System.Environment (getArgs)
 
+
 import Hodor (
-  parseTodoFile
+  readTodoFile
   , TodoFile
   , todoFileItems
   , unparse
@@ -58,15 +59,6 @@ failIfLeft (Left e) = ioError e
 failIfLeft (Right result) = return result
 
 
-parseFile :: String -> IO (Either IOError TodoFile)
-parseFile filename = do
-  contents <- readFile filename
-  return $ case parseTodoFile filename contents of
-    -- XXX: It's not obvious that this is the best way to raise the error
-    Left e -> Left (userError (show e))
-    Right result -> Right result
-
-
 -- XXX: Is there a better way of doing this?
 getConfiguration :: [Flag] -> IO Config
 getConfiguration ((TodoFile path):xs) = do
@@ -84,8 +76,12 @@ getConfiguration [] = return defaultConfig
 main :: IO ()
 main = do
   argv <- getArgs
-  (opts, args) <- failIfLeft (hodorOpts argv)
+  (opts, args) <- case (hodorOpts argv) of
+    Left e -> ioError e
+    Right result -> return result
   config <- getConfiguration opts
-  result <- parseFile (todoFilePath config)
-  todoFile <- failIfLeft result
+  result <- readTodoFile (todoFilePath config)
+  todoFile <- case result of
+    Left e -> ioError $ userError $ show e
+    Right r -> return r
   putStrLn $ intercalate "\n" $ map unparse (todoFileItems todoFile)

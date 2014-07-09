@@ -1,11 +1,24 @@
 module Hodor.File (
-  expandUser
+  expandUser,
+  readTodoFile,
   ) where
 
 import System.Directory (getHomeDirectory)
 import System.Posix.User (getUserEntryForName, homeDirectory)
+import Text.ParserCombinators.Parsec
+
+import Hodor.Parser (parseTodoFile)
+import Hodor.Types (TodoFile)
 
 
+-- XXX: Rename to readTodoFile
+readTodoFile :: String -> IO (Either ParseError TodoFile)
+readTodoFile filename = do
+  contents <- readFile filename
+  return $ parseTodoFile filename contents
+
+
+-- XXX: Move to some utility class
 expandUser :: FilePath -> IO FilePath
 -- "~" => "/home/foo"
 expandUser "~" = getHomeDirectory
