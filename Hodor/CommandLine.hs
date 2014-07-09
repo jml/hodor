@@ -4,6 +4,7 @@ import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
 import System.Console.GetOpt
 import System.Environment (getArgs)
+import Text.Printf (printf)
 
 
 import Hodor (
@@ -82,10 +83,16 @@ readTodoFileEx path = do
 
 type HodorCommand = Config -> [String] -> IO ()
 
+
+enumerate :: [a] -> [(Integer, a)]
+enumerate = zip [1..]
+
+
 cmdList :: HodorCommand
 cmdList config _ = do
   todoFile <- readTodoFileEx (todoFilePath config)
-  putStr $ unlines $ map unparse (todoFileItems todoFile)
+  putStr $ unlines $ map formatTodo $ enumerate $ todoFileItems todoFile
+  where formatTodo (i, t) = printf "%02d %s" i (unparse t)
 
 
 commands :: M.Map String HodorCommand
