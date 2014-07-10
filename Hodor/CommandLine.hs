@@ -88,12 +88,24 @@ enumerate :: [a] -> [(Integer, a)]
 enumerate = zip [1..]
 
 
+-- Here we number items according to how they appear, but actually the number
+-- is intrinsic to the item, and should probably be associated when parsed.
 cmdList :: HodorCommand
 cmdList config _ = do
   todoFile <- readTodoFileEx (todoFilePath config)
   putStr $ unlines $ map formatTodo $ enumerate $ todoFileItems todoFile
   where formatTodo (i, t) = printf "%02d %s" i (unparse t)
 
+
+-- XXX: Add
+-- XXX: Mark as done
+-- XXX: Mark as undone
+-- XXX: Filter when listing
+-- XXX: External config file (yaml?)
+-- XXX: Look into better idioms for errors
+--      (Exceptions, ErrorT, either-as-monad)?
+-- XXX: Look into better idioms for config
+-- XXX: Try to get the commands out of IO
 
 commands :: M.Map String HodorCommand
 commands = M.fromList [
