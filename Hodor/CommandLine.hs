@@ -1,5 +1,6 @@
 module Hodor.CommandLine where
 
+import Data.List (intercalate)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
 import System.Console.GetOpt
@@ -88,13 +89,32 @@ enumerate :: [a] -> [(Integer, a)]
 enumerate = zip [1..]
 
 
+appName :: String
+appName = "HODOR"
+
+
 -- Here we number items according to how they appear, but actually the number
 -- is intrinsic to the item, and should probably be associated when parsed.
 cmdList :: HodorCommand
 cmdList config _ = do
   todoFile <- readTodoFileEx (todoFilePath config)
-  putStr $ unlines $ map formatTodo $ enumerate $ todoFileItems todoFile
+  let items = todoFileItems todoFile
+      count = length items
+  putStr $ unlines $ map formatTodo $ enumerate $ items
+  putStrLn "--"
+  putStrLn $ printf "%s: %d of %d items shown" appName count count
   where formatTodo (i, t) = printf "%02d %s" i (unparse t)
+
+
+cmdAdd :: HodorCommand
+cmdAdd config args = do
+  let item = intercalate " " args
+      todoFile = todoFilePath config
+  appendFile todoFile $ item ++ "\n"
+  todos <- readTodoFileEx todoFile
+  let count = length $ todoFileItems $ todos
+  putStrLn $ printf "%02d %s" count item
+  putStrLn $ printf "%s: %d added." appName count
 
 
 -- XXX: Add
@@ -110,7 +130,8 @@ cmdList config _ = do
 commands :: M.Map String HodorCommand
 commands = M.fromList [
   ("list", cmdList),
-  ("ls", cmdList)
+  ("ls",   cmdList),
+  ("add",  cmdAdd)
   ]
 
 
