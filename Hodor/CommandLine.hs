@@ -3,6 +3,12 @@ module Hodor.CommandLine where
 import Data.List (intercalate)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
+import Data.Time (
+  Day,
+  getZonedTime,
+  localDay,
+  zonedTimeToLocalTime
+  )
 import System.Console.GetOpt
 import System.Environment (getArgs)
 import Text.Printf (printf)
@@ -42,6 +48,9 @@ defaultConfig :: Config
 defaultConfig = Config { todoFilePath = defaultTodoFile,
                          doneFilePath = defaultDoneFile,
                          dateOnAdd = True }
+
+today :: IO Day
+today = localDay `fmap` zonedTimeToLocalTime `fmap` getZonedTime
 
 
 -- XXX: It's a bit crappy having these defaults specified twice over
@@ -111,7 +120,11 @@ cmdList config _ = do
 
 cmdAdd :: HodorCommand
 cmdAdd config args = do
-  let item = intercalate " " args
+  -- XXX: This bit (add today's date if config says so) is hideous
+  allArgs <- case (dateOnAdd config) of
+    True -> today >>= \x -> return $ (show x):args
+    False -> return args
+  let item = intercalate " " allArgs
       todoFile = todoFilePath config
   appendFile todoFile $ item ++ "\n"
   todos <- readTodoFileEx todoFile
