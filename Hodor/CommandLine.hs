@@ -64,21 +64,20 @@ usageError errs = userError (concat errs ++ usageInfo header options)
 
 
 -- XXX: Is there a better way of doing this?
-getConfiguration :: [Flag] -> IO Config
-getConfiguration ((TodoFile path):xs) = do
-  fullPath <- expandUser path
-  config <- (getConfiguration xs)
-  return $ config { todoFilePath = fullPath }
-getConfiguration ((DoneFile path):xs) = do
-  fullPath <- expandUser path
-  config <- (getConfiguration xs)
-  return $ config { doneFilePath = fullPath }
-getConfiguration [] = return defaultConfig
+getConfiguration :: [Flag] -> Config
+getConfiguration ((TodoFile path):xs) =
+  let config = (getConfiguration xs)
+  in config { todoFilePath = path }
+getConfiguration ((DoneFile path):xs) =
+  let config = (getConfiguration xs)
+  in config { doneFilePath = path }
+getConfiguration [] = defaultConfig
 
 
 readTodoFileEx :: FilePath -> IO TodoFile
 readTodoFileEx path = do
-  result <- readTodoFile path
+  expanded <- expandUser path
+  result <- readTodoFile expanded
   case result of
     Left e -> ioError $ userError $ show e
     Right r -> return r
@@ -152,5 +151,4 @@ main = do
   (opts, args) <- case (hodorOpts argv) of
     Left e -> ioError e
     Right result -> return result
-  config <- getConfiguration opts
-  getHodorCommand config args
+  getHodorCommand (getConfiguration opts) args
