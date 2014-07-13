@@ -9,6 +9,7 @@ import Data.Time (
   localDay,
   zonedTimeToLocalTime
   )
+import GHC.Exts (sortWith)
 import System.Console.GetOpt
 import System.Environment (getArgs)
 import Text.Printf (printf)
@@ -112,10 +113,11 @@ cmdList config _ = do
   todoFile <- readTodoFileEx (todoFilePath config)
   let items = todoFileItems todoFile
       count = length items
-  putStr $ unlines $ map formatTodo $ enumerate $ items
+  putStr $ unlines $ map formatTodo $ sortTodo $ enumerate $ map unparse $ items
   putStrLn "--"
   putStrLn $ printf "%s: %d of %d items shown" appName count count
-  where formatTodo (i, t) = printf "%02d %s" i (unparse t)
+  where formatTodo (i, t) = printf "%02d %s" i t
+        sortTodo = sortWith snd
 
 
 cmdAdd :: HodorCommand
@@ -135,9 +137,9 @@ cmdAdd config args = do
 
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
 -- XXX: Make a test harness for command-line testing
--- XXX: Sort list like todo does (how does it do that?)
 -- XXX: Colorize
 -- XXX: archive
+-- XXX: Priority list (lsp)
 -- XXX: Mark as done
 -- XXX: Mark as undone
 -- XXX: Filter when listing

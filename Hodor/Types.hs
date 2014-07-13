@@ -49,6 +49,8 @@ data TodoItem = TodoItem {
   tokens :: [Token]
 } deriving (Show, Eq, Ord)
 
+-- XXX: The 'Ord' haskell picks isn't the one todo uses. Not sure if that
+-- matters.
 
 defaultTodoItem :: TodoItem
 defaultTodoItem = TodoItem { dateCompleted = Nothing,
