@@ -64,6 +64,7 @@ usageError errs = userError (concat errs ++ usageInfo header options)
 
 
 -- XXX: Is there a better way of doing this?
+-- XXX: Try out lenses
 getConfiguration :: [Flag] -> Config
 getConfiguration ((TodoFile path):xs) =
   let config = (getConfiguration xs)
@@ -86,6 +87,7 @@ readTodoFileEx path = do
 type HodorCommand = Config -> [String] -> IO ()
 
 
+-- XXX: Does Haskell have this already?
 enumerate :: [a] -> [(Integer, a)]
 enumerate = zip [1..]
 
@@ -118,7 +120,8 @@ cmdAdd config args = do
   putStrLn $ printf "%s: %d added." appName count
 
 
--- XXX: Add
+-- XXX: Add with date
+-- XXX: archive
 -- XXX: Mark as done
 -- XXX: Mark as undone
 -- XXX: Filter when listing
