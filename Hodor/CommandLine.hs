@@ -133,7 +133,10 @@ cmdAdd config args = do
   putStrLn $ printf "%s: %d added." appName count
 
 
--- XXX: Add with date
+-- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
+-- XXX: Make a test harness for command-line testing
+-- XXX: Sort list like todo does (how does it do that?)
+-- XXX: Colorize
 -- XXX: archive
 -- XXX: Mark as done
 -- XXX: Mark as undone
@@ -142,7 +145,16 @@ cmdAdd config args = do
 -- XXX: Look into better idioms for errors
 --      (Exceptions, ErrorT, either-as-monad)?
 -- XXX: Look into better idioms for config
+--      - Reader monad?
+--      - lenses?
 -- XXX: Try to get the commands out of IO
+--      - they could take Todo, Done and return new Todo, Done
+--        - that would avoid cheap writes for 'add' (which currently just append)
+--      - they could take Todo, Done and return new Todo, appended Todo, new Done
+--        - that could get complicated
+--      - some commands do reports too, so need output
+--      - perhaps could define some kind of monad that wraps all of this up?
+--      - probably best to write more of the commands first
 
 commands :: M.Map String HodorCommand
 commands = M.fromList [
