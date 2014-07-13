@@ -19,7 +19,8 @@ import Hodor.File (expandUser)
 
 data Config = Config {
   todoFilePath :: FilePath,
-  doneFilePath :: FilePath
+  doneFilePath :: FilePath,
+  dateOnAdd :: Bool
 } deriving (Show)
 
 
@@ -39,7 +40,8 @@ defaultDoneFile = "/Users/jml/.todo/done.txt"
 
 defaultConfig :: Config
 defaultConfig = Config { todoFilePath = defaultTodoFile,
-                         doneFilePath = defaultDoneFile }
+                         doneFilePath = defaultDoneFile,
+                         dateOnAdd = True }
 
 
 -- XXX: It's a bit crappy having these defaults specified twice over
@@ -64,12 +66,12 @@ usageError errs = userError (concat errs ++ usageInfo header options)
 -- XXX: Is there a better way of doing this?
 getConfiguration :: [Flag] -> IO Config
 getConfiguration ((TodoFile path):xs) = do
-  config <- (getConfiguration xs)
   fullPath <- expandUser path
+  config <- (getConfiguration xs)
   return $ config { todoFilePath = fullPath }
 getConfiguration ((DoneFile path):xs) = do
-  config <- (getConfiguration xs)
   fullPath <- expandUser path
+  config <- (getConfiguration xs)
   return $ config { doneFilePath = fullPath }
 getConfiguration [] = return defaultConfig
 
