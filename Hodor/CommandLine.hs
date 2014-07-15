@@ -73,7 +73,6 @@ hodorOpts argv =
   case getOpt Permute options argv of
     (o,n,[]  ) -> Right (o,n)
     (_,_,errs) -> Left (usageError errs)
-  where header = "Usage: hodor [OPTION...] "
 
 
 usageError :: [String] -> UserError
