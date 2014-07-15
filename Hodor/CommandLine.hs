@@ -1,5 +1,6 @@
 module Hodor.CommandLine where
 
+import Control.Monad.Error (Error, strMsg, throwError, throwIO)
 import Data.List (intercalate)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
@@ -34,6 +35,13 @@ data Config = Config {
 data Flag = TodoFile FilePath | DoneFile FilePath
 
 
+data UserError = UserError String
+                 deriving (Eq, Show)
+
+instance Error UserError where
+  strMsg = UserError
+
+
 options :: [OptDescr Flag]
 options =
     [ Option ['t'] ["todo-file"] (OptArg tFile "FILE") "location of todo file"
@@ -60,16 +68,16 @@ tFile = TodoFile . fromMaybe defaultTodoFile
 dFile = DoneFile  . fromMaybe defaultDoneFile
 
 
-hodorOpts :: [String] -> Either IOError ([Flag], [String])
+hodorOpts :: [String] -> Either UserError ([Flag], [String])
 hodorOpts argv =
   case getOpt Permute options argv of
     (o,n,[]  ) -> Right (o,n)
-    (_,_,errs) -> Left (userError (concat errs ++ usageInfo header options))
+    (_,_,errs) -> Left (usageError errs)
   where header = "Usage: hodor [OPTION...] "
 
 
-usageError :: [String] -> IOError
-usageError errs = userError (concat errs ++ usageInfo header options)
+usageError :: [String] -> UserError
+usageError errs = UserError (concat errs ++ usageInfo header options)
                   where header = "Usage: hodor [OPTION...] "
 
 
@@ -170,21 +178,23 @@ commands = M.fromList [
   ]
 
 
-getHodorCommand :: Config -> [String] -> IO ()
-getHodorCommand config [] = cmdList config []
-getHodorCommand config (cmd:args) =
-  case M.lookup cmd commands of
-    Just command -> command config args
-    Nothing -> ioError $ usageError (["No such command: ", cmd, "\n"])
-
+getHodorCommand :: [String] -> Either UserError ([String] -> IO (), [String])
+getHodorCommand argv = do
+  (opt, args) <- hodorOpts argv
+  let config = (getConfiguration opt)
+  case args of
+    [] -> return (cmdList config, [])
+    (name:rest) ->
+      case M.lookup name commands of
+        Just command -> return (command config, rest)
+        Nothing -> throwError $ UserError (concat ["No such command: ", name, "\n"])
 
 
 main :: IO ()
 main = do
   argv <- getArgs
-  (opts, args) <- case (hodorOpts argv) of
-    Left e -> ioError e
-    Right result -> return result
-  -- TODO: Use the Reader monad (or ReaderT transformer) rather than passing
-  -- this config around.
-  getHodorCommand (getConfiguration opts) args
+  -- XXX: I can't help but feel that if I understood monad transformers better
+  -- I could make this cleaner.
+  case getHodorCommand argv of
+    Left e -> throwIO e
+    Right (cmd, rest) -> cmd rest
