@@ -23,7 +23,7 @@ import Hodor (
   , unparse
   )
 import Hodor.File (expandUser)
-
+import Hodor.Parser (ParseError)
 
 data Config = Config {
   todoFilePath :: FilePath,
@@ -96,16 +96,11 @@ getConfiguration [] = defaultConfig
 -- whole module to use Control.Monad.Error rather than exceptions.
 --
 -- Will probably need a wrapper ADT to bring in opt errors & parse errors
-readTodoFileEx :: FilePath -> IO TodoFile
+readTodoFileEx :: FilePath -> IO (Either ParseError TodoFile)
 readTodoFileEx path = do
   expanded <- expandUser path
-  result <- readTodoFile expanded
-  case result of
-    Left e -> ioError $ userError $ show e
-    Right r -> return r
+  readTodoFile expanded
 
-
-type HodorCommand = Config -> [String] -> IO ()
 
 
 -- XXX: Does Haskell have this already?
@@ -117,18 +112,25 @@ appName :: String
 appName = "HODOR"
 
 
+type HodorCommand = Config -> [String] -> IO (Either ParseError ())
+
+
 -- Here we number items according to how they appear, but actually the number
 -- is intrinsic to the item, and should probably be associated when parsed.
 cmdList :: HodorCommand
 cmdList config _ = do
-  todoFile <- readTodoFileEx (todoFilePath config)
-  let items = todoFileItems todoFile
-      count = length items
-  putStr $ unlines $ map formatTodo $ sortTodo $ enumerate $ map unparse $ items
-  putStrLn "--"
-  putStrLn $ printf "%s: %d of %d items shown" appName count count
-  where formatTodo (i, t) = printf "%02d %s" i t
-        sortTodo = sortWith snd
+  result <- readTodoFileEx (todoFilePath config)
+  case result of
+    Left e -> return $ Left e
+    Right todoFile -> do
+      let items = todoFileItems todoFile
+          count = length items
+      putStr $ unlines $ map formatTodo $ sortTodo $ enumerate $ map unparse $ items
+      putStrLn "--"
+      putStrLn $ printf "%s: %d of %d items shown" appName count count
+      return $ Right ()
+      where formatTodo (i, t) = printf "%02d %s" i t
+            sortTodo = sortWith snd
 
 
 cmdAdd :: HodorCommand
@@ -140,10 +142,14 @@ cmdAdd config args = do
   let item = intercalate " " allArgs
       todoFile = todoFilePath config
   appendFile todoFile $ item ++ "\n"
-  todos <- readTodoFileEx todoFile
-  let count = length $ todoFileItems $ todos
-  putStrLn $ printf "%02d %s" count item
-  putStrLn $ printf "%s: %d added." appName count
+  result <- readTodoFileEx todoFile
+  case result of
+    Left e -> return $ Left e
+    Right todos -> do
+      let count = length $ todoFileItems $ todos
+      putStrLn $ printf "%02d %s" count item
+      putStrLn $ printf "%s: %d added." appName count
+      return $ Right ()
 
 
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
@@ -177,7 +183,7 @@ commands = M.fromList [
   ]
 
 
-getHodorCommand :: [String] -> Either UserError ([String] -> IO (), [String])
+getHodorCommand :: [String] -> Either UserError ([String] -> IO (Either ParseError ()), [String])
 getHodorCommand argv = do
   (opt, args) <- hodorOpts argv
   let config = (getConfiguration opt)
@@ -196,4 +202,8 @@ main = do
   -- I could make this cleaner.
   case getHodorCommand argv of
     Left e -> (throwError . userError . show) e
-    Right (cmd, rest) -> cmd rest
+    Right (cmd, rest) -> do
+      result <- cmd rest
+      case result of
+        Left e -> (throwError . userError . show) e
+        _ -> return ()
