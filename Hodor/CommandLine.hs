@@ -1,6 +1,7 @@
 module Hodor.CommandLine where
 
-import Control.Monad.Error (Error, strMsg, throwError)
+import Control.Monad.Error (Error, ErrorT, mapErrorT, runErrorT, strMsg, throwError)
+import Control.Monad.Trans (liftIO)
 import Data.List (intercalate)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
@@ -17,13 +18,13 @@ import Text.Printf (printf)
 
 
 import Hodor (
-  readTodoFile
-  , TodoFile
+  TodoFile
   , todoFileItems
   , unparse
   )
 import Hodor.File (expandUser)
-import Hodor.Parser (ParseError)
+import Hodor.Functional (onLeft)
+import Hodor.Parser (ParseError, parseTodoFile)
 
 data Config = Config {
   todoFilePath :: FilePath,
@@ -38,8 +39,16 @@ data Flag = TodoFile FilePath | DoneFile FilePath
 data UserError = UserError String
                  deriving (Eq, Show)
 
+
 instance Error UserError where
   strMsg = UserError
+
+
+data HodorError = U UserError | P ParseError
+                  deriving (Show)
+
+instance Error HodorError where
+  strMsg = U . UserError
 
 
 options :: [OptDescr Flag]
@@ -96,11 +105,13 @@ getConfiguration [] = defaultConfig
 -- whole module to use Control.Monad.Error rather than exceptions.
 --
 -- Will probably need a wrapper ADT to bring in opt errors & parse errors
-readTodoFileEx :: FilePath -> IO (Either ParseError TodoFile)
+readTodoFileEx :: FilePath -> ErrorT ParseError IO TodoFile
 readTodoFileEx path = do
-  expanded <- expandUser path
-  readTodoFile expanded
-
+  expanded <- liftIO $ expandUser path
+  contents <- liftIO $ readFile expanded
+  case parseTodoFile expanded contents of
+    Left e -> throwError e
+    Right r -> return r
 
 
 -- XXX: Does Haskell have this already?
@@ -117,39 +128,33 @@ type HodorCommand = Config -> [String] -> IO (Either ParseError ())
 
 -- Here we number items according to how they appear, but actually the number
 -- is intrinsic to the item, and should probably be associated when parsed.
-cmdList :: HodorCommand
+cmdList :: Config -> [String] -> ErrorT ParseError IO ()
 cmdList config _ = do
-  result <- readTodoFileEx (todoFilePath config)
-  case result of
-    Left e -> return $ Left e
-    Right todoFile -> do
-      let items = todoFileItems todoFile
-          count = length items
-      putStr $ unlines $ map formatTodo $ sortTodo $ enumerate $ map unparse $ items
-      putStrLn "--"
-      putStrLn $ printf "%s: %d of %d items shown" appName count count
-      return $ Right ()
-      where formatTodo (i, t) = printf "%02d %s" i t
-            sortTodo = sortWith snd
+  todoFile <- readTodoFileEx (todoFilePath config)
+  let items = todoFileItems todoFile
+      count = length items
+  liftIO $ putStr $ unlines $ map formatTodo $ sortTodo $ enumerate $ map unparse $ items
+  liftIO $ putStrLn "--"
+  liftIO $ putStrLn $ printf "%s: %d of %d items shown" appName count count
+  return ()
+  where formatTodo (i, t) = printf "%02d %s" i t
+        sortTodo = sortWith snd
 
 
-cmdAdd :: HodorCommand
+cmdAdd :: Config -> [String] -> ErrorT ParseError IO ()
 cmdAdd config args = do
   -- XXX: This bit (add today's date if config says so) is hideous
   allArgs <- case (dateOnAdd config) of
-    True -> today >>= \x -> return $ (show x):args
+    True -> liftIO today >>= \x -> return $ (show x):args
     False -> return args
   let item = intercalate " " allArgs
       todoFile = todoFilePath config
-  appendFile todoFile $ item ++ "\n"
-  result <- readTodoFileEx todoFile
-  case result of
-    Left e -> return $ Left e
-    Right todos -> do
-      let count = length $ todoFileItems $ todos
-      putStrLn $ printf "%02d %s" count item
-      putStrLn $ printf "%s: %d added." appName count
-      return $ Right ()
+  liftIO $ appendFile todoFile $ item ++ "\n"
+  todos <- readTodoFileEx todoFile
+  let count = length $ todoFileItems $ todos
+  liftIO $ putStrLn $ printf "%02d %s" count item
+  liftIO $ putStrLn $ printf "%s: %d added." appName count
+  return ()
 
 
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
@@ -175,7 +180,7 @@ cmdAdd config args = do
 --      - perhaps could define some kind of monad that wraps all of this up?
 --      - probably best to write more of the commands first
 
-commands :: M.Map String HodorCommand
+commands :: M.Map String (Config -> [String] -> ErrorT ParseError IO ())
 commands = M.fromList [
   ("list", cmdList),
   ("ls",   cmdList),
@@ -183,27 +188,30 @@ commands = M.fromList [
   ]
 
 
-getHodorCommand :: [String] -> Either UserError ([String] -> IO (Either ParseError ()), [String])
-getHodorCommand argv = do
-  (opt, args) <- hodorOpts argv
+
+-- XXX: Surely this must already exist
+toErrorT (Left e) = throwError e
+toErrorT (Right r) = return r
+
+wrapError f = mapErrorT (fmap (onLeft f))
+
+runHodor :: [String] -> ErrorT HodorError IO ()
+runHodor argv = do
+  (opt, args) <- wrapError U $ toErrorT $ hodorOpts argv
   let config = (getConfiguration opt)
   case args of
-    [] -> return (cmdList config, [])
+    [] -> wrapError P $ cmdList config []
     (name:rest) ->
       case M.lookup name commands of
-        Just command -> return (command config, rest)
-        Nothing -> throwError $ UserError (concat ["No such command: ", name, "\n"])
+        Just command -> wrapError P $ command config rest
+        Nothing -> wrapError U $ throwError $ UserError (concat ["No such command: ", name, "\n"])
+
 
 
 main :: IO ()
 main = do
   argv <- getArgs
-  -- XXX: I can't help but feel that if I understood monad transformers better
-  -- I could make this cleaner.
-  case getHodorCommand argv of
-    Left e -> (throwError . userError . show) e
-    Right (cmd, rest) -> do
-      result <- cmd rest
-      case result of
-        Left e -> (throwError . userError . show) e
-        _ -> return ()
+  result <- runErrorT $ runHodor argv
+  case result of
+    Left e -> (ioError . userError . show) e
+    Right _ -> return ()
