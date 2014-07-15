@@ -73,7 +73,7 @@ usageError errs = userError (concat errs ++ usageInfo header options)
                   where header = "Usage: hodor [OPTION...] "
 
 
--- XXX: Is there a better way of doing this?
+-- XXX: Is there a better way of doing this transformation?
 -- XXX: Try out lenses
 getConfiguration :: [Flag] -> Config
 getConfiguration ((TodoFile path):xs) =
@@ -85,6 +85,10 @@ getConfiguration ((DoneFile path):xs) =
 getConfiguration [] = defaultConfig
 
 
+-- TODO: Bust this apart and use the newly made ParseError to try to get this
+-- whole module to use Control.Monad.Error rather than exceptions.
+--
+-- Will probably need a wrapper ADT to bring in opt errors & parse errors
 readTodoFileEx :: FilePath -> IO TodoFile
 readTodoFileEx path = do
   expanded <- expandUser path
@@ -181,4 +185,6 @@ main = do
   (opts, args) <- case (hodorOpts argv) of
     Left e -> ioError e
     Right result -> return result
+  -- TODO: Use the Reader monad (or ReaderT transformer) rather than passing
+  -- this config around.
   getHodorCommand (getConfiguration opts) args
