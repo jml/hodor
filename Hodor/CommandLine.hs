@@ -1,6 +1,6 @@
 module Hodor.CommandLine where
 
-import Control.Monad.Error (Error, strMsg, throwError, throwIO)
+import Control.Monad.Error (Error, strMsg, throwError)
 import Data.List (intercalate)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
@@ -196,5 +196,5 @@ main = do
   -- XXX: I can't help but feel that if I understood monad transformers better
   -- I could make this cleaner.
   case getHodorCommand argv of
-    Left e -> throwIO e
+    Left e -> (throwError . userError . show) e
     Right (cmd, rest) -> cmd rest
