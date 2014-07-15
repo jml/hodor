@@ -1,7 +1,7 @@
 module Hodor.CommandLine where
 
-import Control.Monad.Error (Error, ErrorT, mapErrorT, runErrorT, strMsg, throwError)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Error (Error, ErrorT(ErrorT), mapErrorT, runErrorT, strMsg, throwError)
+import Control.Monad.Trans (lift, liftIO)
 import Data.List (intercalate)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
@@ -77,11 +77,13 @@ tFile = TodoFile . fromMaybe defaultTodoFile
 dFile = DoneFile  . fromMaybe defaultDoneFile
 
 
+-- Alternatively...
+-- hodorOpts :: MonadError UserError m => [String] -> m ([Flag], [String])
 hodorOpts :: [String] -> Either UserError ([Flag], [String])
 hodorOpts argv =
   case getOpt Permute options argv of
-    (o,n,[]  ) -> Right (o,n)
-    (_,_,errs) -> Left (usageError errs)
+    (o,n,[]  ) -> return (o,n)
+    (_,_,errs) -> throwError (usageError errs)
 
 
 usageError :: [String] -> UserError
@@ -101,10 +103,7 @@ getConfiguration ((DoneFile path):xs) =
 getConfiguration [] = defaultConfig
 
 
--- TODO: Bust this apart and use the newly made ParseError to try to get this
--- whole module to use Control.Monad.Error rather than exceptions.
---
--- Will probably need a wrapper ADT to bring in opt errors & parse errors
+-- XXX: See hodorOpts for possible change to type signature
 readTodoFileEx :: FilePath -> ErrorT ParseError IO TodoFile
 readTodoFileEx path = do
   expanded <- liftIO $ expandUser path
@@ -114,7 +113,7 @@ readTodoFileEx path = do
     Right r -> return r
 
 
--- XXX: Does Haskell have this already?
+-- XXX: Move to functional
 enumerate :: [a] -> [(Integer, a)]
 enumerate = zip [1..]
 
@@ -123,12 +122,12 @@ appName :: String
 appName = "HODOR"
 
 
-type HodorCommand = Config -> [String] -> IO (Either ParseError ())
+type HodorCommand = ErrorT ParseError IO ()
 
 
 -- Here we number items according to how they appear, but actually the number
 -- is intrinsic to the item, and should probably be associated when parsed.
-cmdList :: Config -> [String] -> ErrorT ParseError IO ()
+cmdList :: Config -> [String] -> HodorCommand
 cmdList config _ = do
   todoFile <- readTodoFileEx (todoFilePath config)
   let items = todoFileItems todoFile
@@ -136,12 +135,11 @@ cmdList config _ = do
   liftIO $ putStr $ unlines $ map formatTodo $ sortTodo $ enumerate $ map unparse $ items
   liftIO $ putStrLn "--"
   liftIO $ putStrLn $ printf "%s: %d of %d items shown" appName count count
-  return ()
   where formatTodo (i, t) = printf "%02d %s" i t
         sortTodo = sortWith snd
 
 
-cmdAdd :: Config -> [String] -> ErrorT ParseError IO ()
+cmdAdd :: Config -> [String] -> HodorCommand
 cmdAdd config args = do
   -- XXX: This bit (add today's date if config says so) is hideous
   allArgs <- case (dateOnAdd config) of
@@ -154,7 +152,6 @@ cmdAdd config args = do
   let count = length $ todoFileItems $ todos
   liftIO $ putStrLn $ printf "%02d %s" count item
   liftIO $ putStrLn $ printf "%s: %d added." appName count
-  return ()
 
 
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
@@ -166,8 +163,6 @@ cmdAdd config args = do
 -- XXX: Mark as undone
 -- XXX: Filter when listing
 -- XXX: External config file (yaml?)
--- XXX: Look into better idioms for errors
---      (Exceptions, ErrorT, either-as-monad)?
 -- XXX: Look into better idioms for config
 --      - Reader monad?
 --      - lenses?
@@ -180,7 +175,9 @@ cmdAdd config args = do
 --      - perhaps could define some kind of monad that wraps all of this up?
 --      - probably best to write more of the commands first
 
-commands :: M.Map String (Config -> [String] -> ErrorT ParseError IO ())
+-- XXX: Continuation monad?
+
+commands :: M.Map String (Config -> [String] -> HodorCommand)
 commands = M.fromList [
   ("list", cmdList),
   ("ls",   cmdList),
@@ -188,16 +185,14 @@ commands = M.fromList [
   ]
 
 
-
--- XXX: Surely this must already exist
-toErrorT (Left e) = throwError e
-toErrorT (Right r) = return r
-
+-- XXX: Maybe can use catchError for this?
 wrapError f = mapErrorT (fmap (onLeft f))
+
+-- XXX: Is all this error wrapping worth it?
 
 runHodor :: [String] -> ErrorT HodorError IO ()
 runHodor argv = do
-  (opt, args) <- wrapError U $ toErrorT $ hodorOpts argv
+  (opt, args) <- wrapError U $ ErrorT $ return $  hodorOpts argv
   let config = (getConfiguration opt)
   case args of
     [] -> wrapError P $ cmdList config []
