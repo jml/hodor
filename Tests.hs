@@ -2,8 +2,9 @@ module Main where
 
 import Data.Time (fromGregorian)
 import Test.Hspec
-import Text.ParserCombinators.Parsec (ParseError, parse)
+import Text.ParserCombinators.Parsec (parse)
 
+import Hodor.Functional (onLeft)
 import Hodor.Types (
   Context(Context),
   Project(Project),
@@ -18,16 +19,13 @@ import Hodor.Types (
   unparse,
   )
 import Hodor.Parser (
+  ParseError(ParseError),
   parseTodoFile,
   todoTxtLine,
   )
 
 
-instance Eq ParseError where
-  (==) a b = show a == show b
-
-
-testParse parser = parse parser "(unknown)"
+testParse parser = onLeft ParseError . parse parser "(unknown)"
 
 shouldHave x p y = (fmap p x) `shouldBe` (return y)
 

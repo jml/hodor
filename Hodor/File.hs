@@ -5,13 +5,11 @@ module Hodor.File (
 
 import System.Directory (getHomeDirectory)
 import System.Posix.User (getUserEntryForName, homeDirectory)
-import Text.ParserCombinators.Parsec
 
-import Hodor.Parser (parseTodoFile)
+import Hodor.Parser (ParseError, parseTodoFile)
 import Hodor.Types (TodoFile)
 
 
--- XXX: Rename to readTodoFile
 readTodoFile :: String -> IO (Either ParseError TodoFile)
 readTodoFile filename = do
   contents <- readFile filename

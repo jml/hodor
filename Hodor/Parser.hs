@@ -1,4 +1,5 @@
 module Hodor.Parser (
+  ParseError(ParseError),
   parseTodoFile,
   parseTodoTxt,
   todoTxtFile,
@@ -7,8 +8,10 @@ module Hodor.Parser (
 
 import Data.Char (isSpace)
 import Data.Time (Day, fromGregorian)
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec hiding (ParseError)
+import qualified Text.ParserCombinators.Parsec as P
 
+import Hodor.Functional (onLeft)
 import Hodor.Types (
   TodoFile(TodoFile),
   TodoItem(TodoItem),
@@ -17,7 +20,13 @@ import Hodor.Types (
   )
 
 
--- XXX: Should we completely wrap ParseError, hiding it from the public APIs?
+newtype ParseError = ParseError P.ParseError
+                     deriving (Show)
+
+instance Eq ParseError where
+  (==) a b = show a == show b
+
+
 
 parseTodoFile :: FilePath -> String -> Either ParseError TodoFile
 parseTodoFile filename contents =
@@ -25,7 +34,7 @@ parseTodoFile filename contents =
 
 
 parseTodoTxt :: FilePath -> String -> Either ParseError [TodoItem]
-parseTodoTxt = parse todoTxtFile
+parseTodoTxt f = onLeft ParseError . parse todoTxtFile f
 
 
 todoTxtFile :: Parser [TodoItem]
