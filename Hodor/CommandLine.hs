@@ -120,11 +120,16 @@ cmdList :: [String] -> HodorCommand ()
 cmdList _ = do
   todoFileName <- fmap todoFilePath ask
   todoFile <- readTodoFileEx todoFileName
+  liftIO $ putStrLn $ cmdListPure todoFile
+
+
+cmdListPure :: TodoFile -> String
+cmdListPure todoFile =
   let items = todoFileItems todoFile
       count = length items
-  liftIO $ putStr $ unlines $ map formatTodo $ sortTodo $ enumerate $ map unparse $ items
-  liftIO $ putStrLn "--"
-  liftIO $ putStrLn $ printf "%s: %d of %d items shown" appName count count
+      todoLines = map formatTodo $ sortTodo $ enumerate $ map unparse $ items
+      summary = printf "%s: %d of %d items shown" appName count count in
+  unlines $ todoLines ++ ["--", summary]
   where formatTodo (i, t) = printf "%02d %s" i t
         sortTodo = sortWith snd
 
@@ -133,16 +138,23 @@ cmdAdd :: [String] -> HodorCommand ()
 cmdAdd args = do
   addDate <- fmap dateOnAdd ask
   -- XXX: This bit (add today's date if config says so) is hideous
-  allArgs <- case addDate of
-    True -> liftIO today >>= \x -> return $ (show x):args
-    False -> return args
-  let item = intercalate " " allArgs
+  day <- case addDate of
+    True -> fmap Just (liftIO today)
+    False -> return Nothing
   todoFile <- fmap todoFilePath ask
-  liftIO $ appendFile todoFile $ item ++ "\n"
   todos <- readTodoFileEx todoFile
-  let count = length $ todoFileItems $ todos
-  liftIO $ putStrLn $ printf "%02d %s" count item
-  liftIO $ putStrLn $ printf "%s: %d added." appName count
+  let (item, output) = cmdAddPure todos day args
+  liftIO $ appendFile todoFile $ item
+  liftIO $ putStrLn $ output
+
+
+cmdAddPure :: TodoFile -> Maybe Day -> [String] -> (String, String)
+cmdAddPure todoFile (Just day) args = cmdAddPure todoFile Nothing (show day:args)
+cmdAddPure todoFile Nothing args =
+  let item = intercalate " " args ++ "\n"
+      count = (length $ todoFileItems todoFile) + 1
+      message = printf "%02d %s\n%s: %d added." count item appName count in
+  (item, message)
 
 
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
