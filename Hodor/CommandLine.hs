@@ -164,9 +164,7 @@ cmdAddPure todoFile Nothing args =
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
 -- XXX: Make a test harness for command-line testing
 -- XXX: Colorize
--- XXX: archive
 -- XXX: Priority list (lsp)
--- XXX: Mark as done
 -- XXX: Mark as undone
 -- XXX: Filter when listing
 -- XXX: External config file (yaml?)
@@ -181,6 +179,9 @@ cmdAddPure todoFile Nothing args =
 --      - some commands do reports too, so need output
 --      - perhaps could define some kind of monad that wraps all of this up?
 --      - probably best to write more of the commands first
+
+-- TODO: Mark as done
+-- TODO: Archive
 
 
 commands :: M.Map String ([String] -> HodorCommand ())
