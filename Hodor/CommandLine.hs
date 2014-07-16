@@ -1,7 +1,7 @@
 module Hodor.CommandLine where
 
 import Control.Monad.Error (Error, ErrorT(ErrorT), mapErrorT, runErrorT, strMsg, throwError)
-import Control.Monad.Trans (lift, liftIO)
+import Control.Monad.Trans (liftIO)
 import Data.List (intercalate)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
@@ -23,7 +23,7 @@ import Hodor (
   , unparse
   )
 import Hodor.File (expandUser)
-import Hodor.Functional (onLeft)
+import Hodor.Functional (enumerate, onLeft)
 import Hodor.Parser (ParseError, parseTodoFile)
 
 data Config = Config {
@@ -112,10 +112,6 @@ readTodoFileEx path = do
     Left e -> throwError e
     Right r -> return r
 
-
--- XXX: Move to functional
-enumerate :: [a] -> [(Integer, a)]
-enumerate = zip [1..]
 
 
 appName :: String
