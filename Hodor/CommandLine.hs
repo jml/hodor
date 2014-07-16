@@ -163,6 +163,7 @@ cmdAddPure todoFile Nothing args =
 
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
 -- XXX: Make a test harness for command-line testing
+-- XXX: Add some QuickCheck tests
 -- XXX: Colorize
 -- XXX: Priority list (lsp)
 -- XXX: Mark as undone
