@@ -118,8 +118,9 @@ type HodorCommand = ErrorT ParseError (ReaderT Config IO)
 -- is intrinsic to the item, and should probably be associated when parsed.
 cmdList :: [String] -> HodorCommand ()
 cmdList _ = do
-  todoFileName <- fmap todoFilePath ask
-  todoFile <- readTodoFileEx todoFileName
+  -- ACTION: read file
+  todoFile <- fmap todoFilePath ask >>= readTodoFileEx
+  -- ACTION: display output
   liftIO $ putStrLn $ cmdListPure todoFile
 
 
@@ -136,15 +137,18 @@ cmdListPure todoFile =
 
 cmdAdd :: [String] -> HodorCommand ()
 cmdAdd args = do
+  -- ACTION: get date if we need it
   addDate <- fmap dateOnAdd ask
-  -- XXX: This bit (add today's date if config says so) is hideous
   day <- case addDate of
     True -> fmap Just (liftIO today)
     False -> return Nothing
-  todoFile <- fmap todoFilePath ask
-  todos <- readTodoFileEx todoFile
-  let (item, output) = cmdAddPure todos day args
-  liftIO $ appendFile todoFile $ item
+  -- ACTION: read file
+  todoFile <- fmap todoFilePath ask >>= readTodoFileEx
+  let (item, output) = cmdAddPure todoFile day args
+  -- ACTION: append item
+  todoFileName <- fmap todoFilePath ask
+  liftIO $ appendFile todoFileName $ item
+  -- ACTION: display output
   liftIO $ putStrLn $ output
 
 
