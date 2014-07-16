@@ -1,5 +1,6 @@
 module Hodor.CommandLine where
 
+import Control.Monad (liftM)
 import Control.Monad.Error (Error, ErrorT, mapErrorT, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO)
@@ -174,27 +175,13 @@ commands = M.fromList [
   ]
 
 
--- XXX: Maybe can use catchError for this?
-wrapError f = mapErrorT (fmap (onLeft f))
-
--- XXX: Is all this error wrapping worth it?
+wrapError :: Monad m => (e -> e') -> ErrorT e m a -> ErrorT e' m a
+wrapError = mapErrorT . liftM . onLeft
 
 
 runHodorCommand :: Config -> HodorCommand a -> IO (Either String a)
 runHodorCommand cfg cmd =
   runReaderT (runErrorT $ wrapError show $ cmd) cfg
-
-
--- runHodor :: [String] -> ErrorT e IO ()
--- runHodor argv = do
---   (opt, args) <- ErrorT $ return $  hodorOpts argv
---   let config = (getConfiguration opt)
---   case args of
---     [] -> runHodorCommand config (cmdList config [])
---     (name:rest) ->
---       case M.lookup name commands of
---         Just command -> runHodorCcommand config rest
---         Nothing -> throwError $ UserError (concat ["No such command: ", name, "\n"])
 
 
 getCommand (name:rest) =
