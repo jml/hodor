@@ -77,8 +77,6 @@ tFile = TodoFile . fromMaybe defaultTodoFile
 dFile = DoneFile  . fromMaybe defaultDoneFile
 
 
--- Alternatively...
--- hodorOpts :: MonadError UserError m => [String] -> m ([Flag], [String])
 hodorOpts :: [String] -> Either UserError ([Flag], [String])
 hodorOpts argv =
   case getOpt Permute options argv of
@@ -171,7 +169,6 @@ cmdAdd config args = do
 --      - perhaps could define some kind of monad that wraps all of this up?
 --      - probably best to write more of the commands first
 
--- XXX: Continuation monad?
 
 commands :: M.Map String (Config -> [String] -> HodorCommand)
 commands = M.fromList [
