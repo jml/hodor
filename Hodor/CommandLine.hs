@@ -1,6 +1,7 @@
 module Hodor.CommandLine where
 
-import Control.Monad.Error (Error, ErrorT(ErrorT), mapErrorT, runErrorT, strMsg, throwError)
+import Control.Monad.Error (Error, ErrorT, mapErrorT, runErrorT, strMsg, throwError)
+import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO)
 import Data.List (intercalate)
 import qualified Data.Map as M
@@ -42,13 +43,6 @@ data UserError = UserError String
 
 instance Error UserError where
   strMsg = UserError
-
-
-data HodorError = U UserError | P ParseError
-                  deriving (Show)
-
-instance Error HodorError where
-  strMsg = U . UserError
 
 
 options :: [OptDescr Flag]
@@ -102,7 +96,7 @@ getConfiguration [] = defaultConfig
 
 
 -- XXX: See hodorOpts for possible change to type signature
-readTodoFileEx :: FilePath -> ErrorT ParseError IO TodoFile
+--readTodoFileEx :: FilePath -> ErrorT ParseError IO TodoFile
 readTodoFileEx path = do
   expanded <- liftIO $ expandUser path
   contents <- liftIO $ readFile expanded
@@ -116,12 +110,12 @@ appName :: String
 appName = "HODOR"
 
 
-type HodorCommand = ErrorT ParseError IO ()
+type HodorCommand = ErrorT ParseError (ReaderT Config IO)
 
 
 -- Here we number items according to how they appear, but actually the number
 -- is intrinsic to the item, and should probably be associated when parsed.
-cmdList :: Config -> [String] -> HodorCommand
+cmdList :: Config -> [String] -> HodorCommand ()
 cmdList config _ = do
   todoFile <- readTodoFileEx (todoFilePath config)
   let items = todoFileItems todoFile
@@ -133,7 +127,7 @@ cmdList config _ = do
         sortTodo = sortWith snd
 
 
-cmdAdd :: Config -> [String] -> HodorCommand
+cmdAdd :: Config -> [String] -> HodorCommand ()
 cmdAdd config args = do
   -- XXX: This bit (add today's date if config says so) is hideous
   allArgs <- case (dateOnAdd config) of
@@ -170,7 +164,7 @@ cmdAdd config args = do
 --      - probably best to write more of the commands first
 
 
-commands :: M.Map String (Config -> [String] -> HodorCommand)
+commands :: M.Map String (Config -> [String] -> HodorCommand ())
 commands = M.fromList [
   ("list", cmdList),
   ("ls",   cmdList),
@@ -183,23 +177,44 @@ wrapError f = mapErrorT (fmap (onLeft f))
 
 -- XXX: Is all this error wrapping worth it?
 
-runHodor :: [String] -> ErrorT HodorError IO ()
-runHodor argv = do
-  (opt, args) <- wrapError U $ ErrorT $ return $  hodorOpts argv
-  let config = (getConfiguration opt)
-  case args of
-    [] -> wrapError P $ cmdList config []
-    (name:rest) ->
-      case M.lookup name commands of
-        Just command -> wrapError P $ command config rest
-        Nothing -> wrapError U $ throwError $ UserError (concat ["No such command: ", name, "\n"])
 
+runHodorCommand :: Config -> HodorCommand a -> IO (Either String a)
+runHodorCommand cfg cmd =
+  runReaderT (runErrorT $ wrapError show $ cmd) cfg
+
+
+-- runHodor :: [String] -> ErrorT e IO ()
+-- runHodor argv = do
+--   (opt, args) <- ErrorT $ return $  hodorOpts argv
+--   let config = (getConfiguration opt)
+--   case args of
+--     [] -> runHodorCommand config (cmdList config [])
+--     (name:rest) ->
+--       case M.lookup name commands of
+--         Just command -> runHodorCcommand config rest
+--         Nothing -> throwError $ UserError (concat ["No such command: ", name, "\n"])
+
+
+getCommand (name:rest) =
+  case M.lookup name commands of
+    Just command -> return (command, rest)
+    Nothing -> throwError $ UserError (concat ["No such command: ", name, "\n"])
+getCommand [] = return (cmdList, [])
 
 
 main :: IO ()
 main = do
   argv <- getArgs
-  result <- runErrorT $ runHodor argv
-  case result of
+  -- XXX: Classic staircase. Get rid of it once other things have settled
+  -- down.
+  case hodorOpts argv of
     Left e -> (ioError . userError . show) e
-    Right _ -> return ()
+    Right (opts, args) ->
+      case getCommand args of
+        Left e -> (ioError . userError . show) e
+        Right (cmd, rest) ->
+          let config = getConfiguration opts in do
+          result <- runHodorCommand config (cmd config rest)
+          case result of
+            Left e -> (ioError . userError) e
+            Right _ -> return ()
