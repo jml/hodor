@@ -115,9 +115,10 @@ type HodorCommand = ErrorT ParseError (ReaderT Config IO)
 
 -- Here we number items according to how they appear, but actually the number
 -- is intrinsic to the item, and should probably be associated when parsed.
-cmdList :: Config -> [String] -> HodorCommand ()
-cmdList config _ = do
-  todoFile <- readTodoFileEx (todoFilePath config)
+cmdList :: [String] -> HodorCommand ()
+cmdList _ = do
+  todoFileName <- fmap todoFilePath ask
+  todoFile <- readTodoFileEx todoFileName
   let items = todoFileItems todoFile
       count = length items
   liftIO $ putStr $ unlines $ map formatTodo $ sortTodo $ enumerate $ map unparse $ items
@@ -127,14 +128,15 @@ cmdList config _ = do
         sortTodo = sortWith snd
 
 
-cmdAdd :: Config -> [String] -> HodorCommand ()
-cmdAdd config args = do
+cmdAdd :: [String] -> HodorCommand ()
+cmdAdd args = do
+  addDate <- fmap dateOnAdd ask
   -- XXX: This bit (add today's date if config says so) is hideous
-  allArgs <- case (dateOnAdd config) of
+  allArgs <- case addDate of
     True -> liftIO today >>= \x -> return $ (show x):args
     False -> return args
   let item = intercalate " " allArgs
-      todoFile = todoFilePath config
+  todoFile <- fmap todoFilePath ask
   liftIO $ appendFile todoFile $ item ++ "\n"
   todos <- readTodoFileEx todoFile
   let count = length $ todoFileItems $ todos
@@ -164,7 +166,7 @@ cmdAdd config args = do
 --      - probably best to write more of the commands first
 
 
-commands :: M.Map String (Config -> [String] -> HodorCommand ())
+commands :: M.Map String ([String] -> HodorCommand ())
 commands = M.fromList [
   ("list", cmdList),
   ("ls",   cmdList),
@@ -214,7 +216,7 @@ main = do
         Left e -> (ioError . userError . show) e
         Right (cmd, rest) ->
           let config = getConfiguration opts in do
-          result <- runHodorCommand config (cmd config rest)
+          result <- runHodorCommand config (cmd rest)
           case result of
             Left e -> (ioError . userError) e
             Right _ -> return ()
