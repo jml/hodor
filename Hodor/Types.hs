@@ -2,6 +2,7 @@
 
 module Hodor.Types where
 
+import Data.Maybe (isJust)
 import Data.Time (Day, showGregorian)
 
 type Priority = Char
@@ -67,6 +68,14 @@ contexts item = [ Context p | ContextToken p <- (tokens item) ]
 description :: TodoItem -> String
 description item = concatMap unparse (tokens item)
 
+isDone :: TodoItem -> Bool
+isDone = isJust . dateCompleted
+
+markAsDone :: TodoItem -> Day -> TodoItem
+markAsDone item day = item { dateCompleted = Just day }
+
+-- XXX: How do I do post-conditions in Haskell?
+
 instance Unparse TodoItem where
   unparse item = concat $
     case (dateCompleted item) of
@@ -74,7 +83,22 @@ instance Unparse TodoItem where
       Just completed -> ["x ", unparse completed, unparse (dateCreated item), (description item)]
 
 
+-- XXX: Could make this a NamedList type class or something, implement
+-- functor, foldable & traversable, and then make a specific instance
+-- (newtype?) for todo.
+
 data TodoFile = TodoFile {
   todoFileName :: String,
   todoFileItems :: [TodoItem]
 } deriving (Show, Eq, Ord)
+
+
+instance Unparse TodoFile where
+  unparse = unlines . map unparse . todoFileItems
+
+
+mapTodos :: (TodoItem -> TodoItem) -> TodoFile -> TodoFile
+mapTodos f = onTodos (map f)
+
+onTodos :: ([TodoItem] -> [TodoItem]) -> TodoFile -> TodoFile
+onTodos f todoFile = todoFile { todoFileItems = f (todoFileItems todoFile) }

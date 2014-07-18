@@ -1,7 +1,9 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Hodor.CommandLine where
 
 import Control.Monad (liftM)
-import Control.Monad.Error (Error, ErrorT, mapErrorT, runErrorT, strMsg, throwError)
+import Control.Monad.Error (Error, ErrorT, mapErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO)
 import Data.List (intercalate)
@@ -17,16 +19,19 @@ import GHC.Exts (sortWith)
 import System.Console.GetOpt
 import System.Environment (getArgs)
 import Text.Printf (printf)
+import Text.Read ( readMaybe )
 
 
 import Hodor (
   TodoFile
+  , markAsDone
   , todoFileItems
   , unparse
   )
 import Hodor.File (expandUser)
 import Hodor.Functional (enumerate, onLeft)
 import Hodor.Parser (ParseError, parseTodoFile)
+import Hodor.Types (onTodos)
 
 data Config = Config {
   todoFilePath :: FilePath,
@@ -161,6 +166,48 @@ cmdAddPure todoFile Nothing args =
   (item, message)
 
 
+cmdMarkAsDone :: [String] -> HodorCommand ()
+cmdMarkAsDone args = do
+  -- XXX: Should make this a list of items
+  -- XXX: What if no items are specified?
+  item <- wrapError (strMsg . show) (getItem args)
+  day <- liftIO today
+  path <- fmap todoFilePath ask
+  todoFile <- readTodoFileEx path
+  let newTodoFile = cmdMarkAsDonePure todoFile day item
+  liftIO $ replaceFile path (unparse newTodoFile)
+  -- XXX: Output the changed line
+  -- XXX: Say 'HODOR: NN marked as done.'
+  -- XXX: Handle 'auto-archive' case
+
+
+getItem :: (MonadError UserError m) => [String] -> m Integer
+-- XXX: Change this to use strMsg?
+getItem [] = throwError $ UserError "No items specified"
+getItem (x:_) =
+  case readMaybe x of
+    Just i -> return i
+    Nothing -> throwError $ UserError $ "Invalid number: " ++ x
+
+-- XXX: Strikes me that there ought to be a way to use 'do' notation for Maybe
+-- operations and then turn it into an Either with an error message at the
+-- very end.
+
+-- XXX: Hoogle 'Either a b -> Maybe b' and 'Maybe b -> a -> Either a b'
+
+-- XXX: Making this separate because an atomic write would be better, but I
+-- can't be bothered looking up how to do that right now.
+replaceFile :: FilePath -> String -> IO ()
+replaceFile = writeFile
+
+
+cmdMarkAsDonePure :: TodoFile -> Day -> Integer -> TodoFile
+cmdMarkAsDonePure todoFile day num =
+  onTodos (map doSelected . enumerate) todoFile
+  where doSelected (i, x) | i == num  = markAsDone x day
+                          | otherwise = x
+
+
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
 -- XXX: Make a test harness for command-line testing
 -- XXX: Add some QuickCheck tests
@@ -187,9 +234,10 @@ cmdAddPure todoFile Nothing args =
 
 commands :: M.Map String ([String] -> HodorCommand ())
 commands = M.fromList [
-  ("list", cmdList),
-  ("ls",   cmdList),
-  ("add",  cmdAdd)
+  ("list", cmdList)
+  , ("ls",   cmdList)
+  , ("add",  cmdAdd)
+  , ("do", cmdMarkAsDone)
   ]
 
 
