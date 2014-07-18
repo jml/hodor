@@ -180,6 +180,8 @@ cmdMarkAsDone args = do
   -- XXX: Say 'HODOR: NN marked as done.'
   -- XXX: Handle 'auto-archive' case
 
+-- XXX: What do we do if the item is already done?
+
 
 getItem :: (MonadError UserError m) => [String] -> m Integer
 -- XXX: Change this to use strMsg?
@@ -227,7 +229,6 @@ cmdMarkAsDonePure todoFile day num =
 --      - perhaps could define some kind of monad that wraps all of this up?
 --      - probably best to write more of the commands first
 
--- TODO: Mark as done
 -- TODO: Archive
 
 
@@ -253,6 +254,7 @@ getCommand (name:rest) =
   case M.lookup name commands of
     Just command -> return (command, rest)
     Nothing -> throwError $ UserError (concat ["No such command: ", name, "\n"])
+-- XXX: Make the default command configurable
 getCommand [] = return (cmdList, [])
 
 
