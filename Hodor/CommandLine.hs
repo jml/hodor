@@ -2,7 +2,7 @@
 
 module Hodor.CommandLine where
 
-import Control.Monad (liftM)
+import Control.Monad (liftM, forM_)
 import Control.Monad.Error (Error, ErrorT, mapErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO)
@@ -24,6 +24,7 @@ import Text.Read ( readMaybe )
 
 import Hodor (
   TodoFile
+  , TodoItem
   , markAsDone
   , todoFileItems
   , unparse
@@ -168,28 +169,39 @@ cmdAddPure todoFile Nothing args =
 
 cmdMarkAsDone :: [String] -> HodorCommand ()
 cmdMarkAsDone args = do
-  -- XXX: Should make this a list of items
-  -- XXX: What if no items are specified?
-  item <- wrapError (strMsg . show) (getItem args)
+  items <- wrapError (strMsg . show) (getItems args)
   day <- liftIO today
   path <- fmap todoFilePath ask
   todoFile <- readTodoFileEx path
-  let newTodoFile = cmdMarkAsDonePure todoFile day item
-  liftIO $ replaceFile path (unparse newTodoFile)
-  -- XXX: Output the changed line
-  -- XXX: Say 'HODOR: NN marked as done.'
+  let (newTodoFile, doneItems) = cmdMarkAsDonePure todoFile day items
+  liftIO $ replaceFile path $ unparse newTodoFile
+  forM_ doneItems (\(i, t) -> liftIO $
+                              do putStrLn $ printf "%02d %s" i (unparse t)
+                                 putStrLn $ printf "%s: %d marked as done." appName i)
   -- XXX: Handle 'auto-archive' case
 
--- XXX: What do we do if the item is already done?
+-- XXX: Say 'HODOR: NN is already marked done.' if already done
+-- XXX: Say 'HODOR: No task NN.' if NN out of range
 
 
-getItem :: (MonadError UserError m) => [String] -> m Integer
+
+-- XXX: Hideously under-performant
+cmdMarkAsDonePure :: TodoFile -> Day -> [Integer] -> (TodoFile, [(Integer, TodoItem)])
+cmdMarkAsDonePure todoFile day nums =
+  let indexed = enumerate . todoFileItems $ todoFile
+      chosen = selectIndices nums indexed
+      updated = map (\(i, x) -> (i, markAsDone x day)) chosen
+  in (onTodos (flip replaceItems updated) todoFile, updated)
+
+
+getItems :: (MonadError UserError m) => [String] -> m [Integer]
 -- XXX: Change this to use strMsg?
-getItem [] = throwError $ UserError "No items specified"
-getItem (x:_) =
-  case readMaybe x of
-    Just i -> return i
-    Nothing -> throwError $ UserError $ "Invalid number: " ++ x
+getItems [] = throwError $ UserError "No items specified"
+getItems xs =
+  mapM (\x ->
+         case readMaybe x of
+           Just i -> return i
+           Nothing -> throwError $ UserError $ "Invalid number: " ++ x) xs
 
 -- XXX: Strikes me that there ought to be a way to use 'do' notation for Maybe
 -- operations and then turn it into an Either with an error message at the
@@ -203,11 +215,31 @@ replaceFile :: FilePath -> String -> IO ()
 replaceFile = writeFile
 
 
-cmdMarkAsDonePure :: TodoFile -> Day -> Integer -> TodoFile
-cmdMarkAsDonePure todoFile day num =
-  onTodos (map doSelected . enumerate) todoFile
-  where doSelected (i, x) | i == num  = markAsDone x day
-                          | otherwise = x
+
+-- XXX: What if indices are negative? What if they are out of range?
+
+-- XXX: Currently 1-based (that's what enumerate does). Ideally would be
+-- 0-based and we'd transform.
+
+-- XXX: Currently O(N * M), worst case O(N ** 2). Interesting exercise to
+-- rewrite as performant with lists, but maybe better just to replace core
+-- type with Vector?
+
+-- XXX: Move these to Types once I really understand them.
+
+selectIndices :: [Integer] -> [a] -> [a]
+selectIndices is xs = [ x | (i, x) <- enumerate xs, i `elem` is ]
+
+replaceItems :: [a] -> [(Integer, a)] -> [a]
+replaceItems xs is =
+  map doSelected . enumerate $ xs
+  where doSelected (i, x) = maybe x id (lookup i is)
+
+onIndices :: (a -> a) -> [Integer] -> [a] -> [a]
+onIndices f is =
+  map doSelected . enumerate
+  where doSelected (i, x) | i `elem` is = f x
+                          | otherwise   = x
 
 
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
