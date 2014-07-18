@@ -59,8 +59,8 @@ options =
 
 
 defaultTodoFile, defaultDoneFile :: FilePath
-defaultTodoFile = "/Users/jml/.todo/todo.txt"
-defaultDoneFile = "/Users/jml/.todo/done.txt"
+defaultTodoFile = "/Users/jml/.hodor/todo.txt"
+defaultDoneFile = "/Users/jml/.hodor/done.txt"
 
 defaultConfig :: Config
 defaultConfig = Config { todoFilePath = defaultTodoFile,
@@ -209,7 +209,6 @@ cmdMarkAsDonePure todoFile day num =
 
 
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
--- XXX: Make a test harness for command-line testing
 -- XXX: Add some QuickCheck tests
 -- XXX: Colorize
 -- XXX: Priority list (lsp)
