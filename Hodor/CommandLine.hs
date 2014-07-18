@@ -126,7 +126,7 @@ cmdList _ = do
   -- ACTION: read file
   todoFile <- fmap todoFilePath ask >>= readTodoFileEx
   -- ACTION: display output
-  liftIO $ putStrLn $ cmdListPure todoFile
+  liftIO $ putStr $ cmdListPure todoFile
 
 
 cmdListPure :: TodoFile -> String
