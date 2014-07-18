@@ -2,6 +2,7 @@
 
 module Hodor.Types where
 
+import Control.Monad.Writer
 import Data.Maybe (isJust)
 import Data.Time (Day, showGregorian)
 
@@ -71,10 +72,41 @@ description item = concatMap unparse (tokens item)
 isDone :: TodoItem -> Bool
 isDone = isJust . dateCompleted
 
-markAsDone :: TodoItem -> Day -> TodoItem
-markAsDone item day = item { dateCompleted = Just day }
-
 -- XXX: How do I do post-conditions in Haskell?
+markAsDone :: TodoItem -> Day -> TodoItem
+markAsDone item day | isDone item = item
+                    | otherwise   = item { dateCompleted = Just day }
+
+
+data DoneResult = Done Int TodoItem |
+                  AlreadyDone Int TodoItem |
+                  NoSuchTask Int
+
+
+-- O(n), n is size of TodoFile
+-- XXX: Currently 1-based (that's what enumerate does). Ideally would be
+-- 0-based and we'd transform.
+doItem :: TodoFile -> Day -> Int -> Writer [DoneResult] TodoFile
+doItem file day index =
+  if index > numItems || index < 1
+  then tell [NoSuchTask index] >> return file
+  else
+    let todo = allItems !! (index - 1) in
+    if isDone todo
+    then tell [AlreadyDone index todo] >> return file
+    else tell [Done index todo] >> return (replace file index $ markAsDone todo day)
+  where allItems = todoFileItems file
+        numItems = length allItems
+        replace todoFile ndx item =
+          onTodos (\items -> [ if i == ndx then item else x | (i, x) <- zip [1..] items]) todoFile
+
+
+-- XXX: Currently O(N * M), worst case O(N ** 2). Interesting exercise to
+-- rewrite as performant with lists, but maybe better just to replace core
+-- type with Vector?
+doItems :: TodoFile -> Day -> [Int] -> Writer [DoneResult] TodoFile
+doItems file day indexes = foldM (flip doItem day) file indexes
+
 
 instance Unparse TodoItem where
   unparse item = concat $

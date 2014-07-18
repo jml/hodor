@@ -5,6 +5,7 @@ module Hodor.CommandLine where
 import Control.Monad (liftM, forM_)
 import Control.Monad.Error (Error, ErrorT, mapErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
+import Control.Monad.Writer (runWriter)
 import Control.Monad.Trans (liftIO)
 import Data.List (intercalate)
 import qualified Data.Map as M
@@ -32,7 +33,7 @@ import Hodor (
 import Hodor.File (expandUser)
 import Hodor.Functional (enumerate, onLeft)
 import Hodor.Parser (ParseError, parseTodoFile)
-import Hodor.Types (onTodos)
+import Hodor.Types (doItems, DoneResult(..))
 
 data Config = Config {
   todoFilePath :: FilePath,
@@ -173,25 +174,20 @@ cmdMarkAsDone args = do
   day <- liftIO today
   path <- fmap todoFilePath ask
   todoFile <- readTodoFileEx path
-  let (newTodoFile, doneItems) = cmdMarkAsDonePure todoFile day items
+  let (newTodoFile, doneItems) = runWriter $ doItems todoFile day items
   liftIO $ replaceFile path $ unparse newTodoFile
-  forM_ doneItems (\(i, t) -> liftIO $
-                              do putStrLn $ printf "%02d %s" i (unparse t)
-                                 putStrLn $ printf "%s: %d marked as done." appName i)
-  -- XXX: Handle 'auto-archive' case
+  forM_ doneItems (liftIO . putStr . format)
+  where
+    format (Done i t) = unlines [formatTodo i t,
+                                 printf "%s: %d marked as done." appName i]
+    format (AlreadyDone i t) = unlines [formatTodo i t,
+                                        printf "%s: %d is already marked done." appName i]
+    format (NoSuchTask i) = printf "%s: No task %d\n" appName i
 
--- XXX: Say 'HODOR: NN is already marked done.' if already done
--- XXX: Say 'HODOR: No task NN.' if NN out of range
 
+formatTodo :: Int -> TodoItem -> String
+formatTodo i t = printf "%02d %s" i (unparse t)
 
-
--- XXX: Hideously under-performant
-cmdMarkAsDonePure :: TodoFile -> Day -> [Integer] -> (TodoFile, [(Integer, TodoItem)])
-cmdMarkAsDonePure todoFile day nums =
-  let indexed = enumerate . todoFileItems $ todoFile
-      chosen = selectIndices nums indexed
-      updated = map (\(i, x) -> (i, markAsDone x day)) chosen
-  in (onTodos (flip replaceItems updated) todoFile, updated)
 
 getItems :: (MonadError UserError m) => [String] -> m [Int]
 -- XXX: Change this to use strMsg?
@@ -215,30 +211,8 @@ replaceFile = writeFile
 
 
 
--- XXX: What if indices are negative? What if they are out of range?
 
--- XXX: Currently 1-based (that's what enumerate does). Ideally would be
--- 0-based and we'd transform.
 
--- XXX: Currently O(N * M), worst case O(N ** 2). Interesting exercise to
--- rewrite as performant with lists, but maybe better just to replace core
--- type with Vector?
-
--- XXX: Move these to Types once I really understand them.
-
-selectIndices :: [Integer] -> [a] -> [a]
-selectIndices is xs = [ x | (i, x) <- enumerate xs, i `elem` is ]
-
-replaceItems :: [a] -> [(Integer, a)] -> [a]
-replaceItems xs is =
-  map doSelected . enumerate $ xs
-  where doSelected (i, x) = maybe x id (lookup i is)
-
-onIndices :: (a -> a) -> [Integer] -> [a] -> [a]
-onIndices f is =
-  map doSelected . enumerate
-  where doSelected (i, x) | i `elem` is = f x
-                          | otherwise   = x
 
 
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
