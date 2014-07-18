@@ -14,5 +14,5 @@ unleft (Left x) = x
 unleft _ = throw $ AssertionFailed $ "Expected Left, got Right"
 
 
-enumerate :: [a] -> [(Integer, a)]
+enumerate :: [a] -> [(Int, a)]
 enumerate = zip [1..]

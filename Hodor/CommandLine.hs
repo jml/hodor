@@ -193,8 +193,7 @@ cmdMarkAsDonePure todoFile day nums =
       updated = map (\(i, x) -> (i, markAsDone x day)) chosen
   in (onTodos (flip replaceItems updated) todoFile, updated)
 
-
-getItems :: (MonadError UserError m) => [String] -> m [Integer]
+getItems :: (MonadError UserError m) => [String] -> m [Int]
 -- XXX: Change this to use strMsg?
 getItems [] = throwError $ UserError "No items specified"
 getItems xs =
@@ -244,6 +243,7 @@ onIndices f is =
 
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
 -- XXX: Add some QuickCheck tests
+-- XXX: Handle 'auto-archive' case
 -- XXX: Colorize
 -- XXX: Priority list (lsp)
 -- XXX: Mark as undone
