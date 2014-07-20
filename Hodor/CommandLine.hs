@@ -7,7 +7,7 @@ import Control.Monad.Error (Error, ErrorT, mapErrorT, MonadError, runErrorT, str
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Writer (runWriter)
 import Control.Monad.Trans (liftIO)
-import Data.List (intercalate)
+import Data.List (intercalate, partition)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
 import Data.Time (
@@ -33,7 +33,7 @@ import Hodor (
 import Hodor.File (expandUser)
 import Hodor.Functional (enumerate, onLeft)
 import Hodor.Parser (ParseError, parseTodoFile)
-import Hodor.Types (doItems, DoneResult(..))
+import Hodor.Types (doItems, DoneResult(..), isDone)
 
 data Config = Config {
   todoFilePath :: FilePath,
@@ -162,10 +162,26 @@ cmdAdd args = do
 cmdAddPure :: TodoFile -> Maybe Day -> [String] -> (String, String)
 cmdAddPure todoFile (Just day) args = cmdAddPure todoFile Nothing (show day:args)
 cmdAddPure todoFile Nothing args =
+  -- XXX: Replace with 'unwords'
   let item = intercalate " " args ++ "\n"
       count = (length $ todoFileItems todoFile) + 1
       message = printf "%02d %s\n%s: %d added." count item appName count in
   (item, message)
+
+
+cmdArchive :: [String] -> HodorCommand ()
+cmdArchive _ = do
+  todoPath <- fmap todoFilePath ask
+  todoFile <- readTodoFileEx todoPath
+  let items = todoFileItems todoFile
+      (doneItems, todoItems) = partition isDone items
+      newTodoFile = todoFile { todoFileItems = todoItems }
+      doneString = unlines . map unparse $ doneItems
+  donePath <- fmap doneFilePath ask
+  liftIO $ appendFile donePath doneString
+  liftIO $ replaceFile todoPath (unparse newTodoFile)
+  liftIO $ putStr doneString
+  liftIO $ putStrLn $ printf "%s: %s archived." appName todoPath
 
 
 cmdMarkAsDone :: [String] -> HodorCommand ()
@@ -198,21 +214,11 @@ getItems xs =
            Just i -> return i
            Nothing -> throwError $ UserError $ "Invalid number: " ++ x) xs
 
--- XXX: Strikes me that there ought to be a way to use 'do' notation for Maybe
--- operations and then turn it into an Either with an error message at the
--- very end.
-
--- XXX: Hoogle 'Either a b -> Maybe b' and 'Maybe b -> a -> Either a b'
 
 -- XXX: Making this separate because an atomic write would be better, but I
 -- can't be bothered looking up how to do that right now.
 replaceFile :: FilePath -> String -> IO ()
 replaceFile = writeFile
-
-
-
-
-
 
 
 -- XXX: Make tests for this stuff, dammit (see 'get out of IO' below)
@@ -235,8 +241,6 @@ replaceFile = writeFile
 --      - perhaps could define some kind of monad that wraps all of this up?
 --      - probably best to write more of the commands first
 
--- TODO: Archive
-
 
 commands :: M.Map String ([String] -> HodorCommand ())
 commands = M.fromList [
@@ -244,6 +248,7 @@ commands = M.fromList [
   , ("ls",   cmdList)
   , ("add",  cmdAdd)
   , ("do", cmdMarkAsDone)
+  , ("archive", cmdArchive)
   ]
 
 
