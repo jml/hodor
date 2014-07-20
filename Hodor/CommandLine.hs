@@ -26,7 +26,6 @@ import Text.Read ( readMaybe )
 import Hodor (
   TodoFile
   , TodoItem
-  , markAsDone
   , todoFileItems
   , unparse
   )
@@ -135,10 +134,10 @@ cmdListPure :: TodoFile -> String
 cmdListPure todoFile =
   let items = todoFileItems todoFile
       count = length items
-      todoLines = map formatTodo $ sortTodo $ enumerate $ map unparse $ items
+      todoLines = map formatOneTodo $ sortTodo $ enumerate $ map unparse $ items
       summary = printf "%s: %d of %d items shown" appName count count in
   unlines $ todoLines ++ ["--", summary]
-  where formatTodo (i, t) = printf "%02d %s" i t
+  where formatOneTodo (i, t) = printf "%02d %s" i t
         sortTodo = sortWith snd
 
 
