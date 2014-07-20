@@ -71,6 +71,7 @@ contexts item = [ Context p | ContextToken p <- (tokens item) ]
 description :: TodoItem -> String
 description item = concatMap unparse (tokens item)
 
+
 isDone :: TodoItem -> Bool
 isDone = isJust . dateCompleted
 
@@ -86,7 +87,6 @@ data DoneResult = Done Int TodoItem |
                   deriving (Show, Eq)
 
 
--- O(log n), n is size of TodoFile
 -- XXX: Currently 1-based (that's what enumerate does). Ideally would be
 -- 0-based and we'd transform before we get here.
 doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
@@ -113,6 +113,14 @@ doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
 doItems file day indexes =
   let (todo, results) = runWriter $ foldM (flip doItem day) file indexes in
   (todo, toList results)
+
+
+archive :: TodoFile -> (TodoFile, [TodoItem])
+archive file =
+  let items = todoFileItemsV file
+      (doneItems, todoItems) = S.partition isDone items
+      newTodoFile = file { todoFileItemsV = todoItems }
+  in (newTodoFile, toList doneItems)
 
 
 instance Unparse TodoItem where
