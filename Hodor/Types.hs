@@ -151,8 +151,3 @@ todoFileItems = toList . todoFileItemsV
 
 mapTodos :: (TodoItem -> TodoItem) -> TodoFile -> TodoFile
 mapTodos f t = t { todoFileItemsV = (fmap f . todoFileItemsV $ t) }
-
-
-onTodos :: ([TodoItem] -> [TodoItem]) -> TodoFile -> TodoFile
-onTodos f todoFile =
-  todoFile { todoFileItemsV = (S.fromList . f . toList . todoFileItemsV) todoFile }
