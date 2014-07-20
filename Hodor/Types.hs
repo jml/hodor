@@ -3,9 +3,10 @@
 module Hodor.Types where
 
 import Control.Monad.Writer
+import Data.Foldable (toList)
 import Data.Maybe (isJust)
 import Data.Time (Day, showGregorian)
-import qualified Data.Vector as V
+import qualified Data.Sequence as S
 
 type Priority = Char
 
@@ -125,7 +126,7 @@ instance Unparse TodoItem where
 
 data TodoFile = TodoFile {
   todoFileName :: String,
-  todoFileItemsV :: V.Vector TodoItem
+  todoFileItemsV :: S.Seq TodoItem
 } deriving (Show, Eq, Ord)
 
 
@@ -135,7 +136,7 @@ instance Unparse TodoFile where
 
 makeTodoFile :: String -> [TodoItem] -> TodoFile
 makeTodoFile name items = TodoFile { todoFileName = name,
-                                     todoFileItemsV = V.fromList items }
+                                     todoFileItemsV = S.fromList items }
 
 
 updateTodoFile :: TodoFile -> [TodoItem] -> TodoFile
@@ -143,12 +144,13 @@ updateTodoFile old = makeTodoFile (todoFileName old)
 
 
 todoFileItems :: TodoFile -> [TodoItem]
-todoFileItems = V.toList . todoFileItemsV
+todoFileItems = toList . todoFileItemsV
 
 
 mapTodos :: (TodoItem -> TodoItem) -> TodoFile -> TodoFile
-mapTodos f = onTodos (map f)
+mapTodos f t = t { todoFileItemsV = (fmap f . todoFileItemsV $ t) }
+
 
 onTodos :: ([TodoItem] -> [TodoItem]) -> TodoFile -> TodoFile
 onTodos f todoFile =
-  todoFile { todoFileItemsV = (V.fromList . f . V.toList . todoFileItemsV) todoFile }
+  todoFile { todoFileItemsV = (S.fromList . f . toList . todoFileItemsV) todoFile }
