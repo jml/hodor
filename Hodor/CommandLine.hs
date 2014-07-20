@@ -7,7 +7,7 @@ import Control.Monad.Error (Error, ErrorT, mapErrorT, MonadError, runErrorT, str
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Writer (runWriter)
 import Control.Monad.Trans (liftIO)
-import Data.List (intercalate, partition)
+import Data.List (partition)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
 import Data.Time (
@@ -162,8 +162,7 @@ cmdAdd args = do
 cmdAddPure :: TodoFile -> Maybe Day -> [String] -> (String, String)
 cmdAddPure todoFile (Just day) args = cmdAddPure todoFile Nothing (show day:args)
 cmdAddPure todoFile Nothing args =
-  -- XXX: Replace with 'unwords'
-  let item = intercalate " " args ++ "\n"
+  let item = unwords args ++ "\n"
       count = (length $ todoFileItems todoFile) + 1
       message = printf "%02d %s\n%s: %d added." count item appName count in
   (item, message)
