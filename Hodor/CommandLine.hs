@@ -116,7 +116,7 @@ appName :: String
 appName = "HODOR"
 
 
-type HodorCommand = ErrorT String (ReaderT Config IO)
+type HodorCommand = ReaderT Config (ErrorT String IO)
 
 
 -- Here we number items according to how they appear, but actually the number
@@ -253,11 +253,6 @@ wrapError :: Monad m => (e -> e') -> ErrorT e m a -> ErrorT e' m a
 wrapError = mapErrorT . liftM . onLeft
 
 
-runHodorCommand :: Config -> HodorCommand a -> IO (Either String a)
-runHodorCommand cfg cmd =
-  runReaderT (runErrorT $ wrapError show $ cmd) cfg
-
-
 getCommand :: (Error e) => [String] -> Either e ([String] -> HodorCommand (), [String])
 getCommand (name:rest) =
   case M.lookup name commands of
@@ -279,7 +274,7 @@ main = do
         Left e -> (ioError . userError) e
         Right (cmd, rest) ->
           let config = getConfiguration opts in do
-          result <- runHodorCommand config (cmd rest)
+          result <- runErrorT $ wrapError show $ (runReaderT (cmd rest) config)
           case result of
             Left e -> (ioError . userError) e
             Right _ -> return ()
