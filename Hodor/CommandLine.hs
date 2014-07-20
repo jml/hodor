@@ -2,11 +2,10 @@
 
 module Hodor.CommandLine where
 
-import Control.Monad (forM_)
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
-import Control.Monad.Writer (runWriter)
 import Control.Monad.Trans (liftIO, MonadIO)
+import Data.Foldable (forM_)
 import Data.List (partition)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
@@ -188,7 +187,7 @@ cmdMarkAsDone args = do
   day <- liftIO today
   path <- fmap todoFilePath ask
   todoFile <- readTodoFileEx path
-  let (newTodoFile, doneItems) = runWriter $ doItems todoFile day items
+  let (newTodoFile, doneItems) = doItems todoFile day items
   liftIO $ replaceFile path $ unparse newTodoFile
   forM_ doneItems (liftIO . putStr . format)
   where

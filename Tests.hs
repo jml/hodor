@@ -1,6 +1,5 @@
 module Main where
 
-import Control.Monad.Writer
 import Data.Time (fromGregorian)
 import Test.Hspec
 import Text.Parsec (parse)
@@ -108,11 +107,11 @@ main = hspec $ do
     describe "when there are no todos" $ do
       let emptyFile = makeTodoFile "empty" []
       it "reports no such task" $ do
-        (execWriter $ doItems emptyFile someDay [2]) `shouldBe` [NoSuchTask 2]
+        snd (doItems emptyFile someDay [2]) `shouldBe` [NoSuchTask 2]
       it "reports no such task for all given tasks" $ do
-        (execWriter $ doItems emptyFile someDay [2, 3]) `shouldBe` [NoSuchTask 2, NoSuchTask 3]
+        snd (doItems emptyFile someDay [2, 3]) `shouldBe` [NoSuchTask 2, NoSuchTask 3]
       it "doesn't create new tasks" $ do
-        (todoFileItems $ fst $ runWriter (doItems emptyFile someDay [2, 3])) `shouldBe` []
+        (todoFileItems $ fst (doItems emptyFile someDay [2, 3])) `shouldBe` []
 
     describe "with todos" $ do
       let sampleTodoText = unlines [
@@ -125,10 +124,10 @@ main = hspec $ do
       it "reports that it marks item as done" $ do
         let index = 2
             originalItem = todoFileItems sampleTodo !! (index - 1)
-            todoWriter = doItems sampleTodo someDay [index]
-        (execWriter todoWriter) `shouldBe` [Done index originalItem { dateCompleted = Just someDay } ]
+            (_, events) = doItems sampleTodo someDay [index]
+        events `shouldBe` [Done index originalItem { dateCompleted = Just someDay } ]
       it "marks the item as done" $ do
         let index = 2
             originalItem = todoFileItems sampleTodo !! (index - 1)
             todoWriter = doItems sampleTodo someDay [index]
-        (todoFileItems $ fst $ runWriter todoWriter) !! (index - 1) `shouldBe` originalItem { dateCompleted = Just someDay }
+        (todoFileItems $ fst todoWriter) !! (index - 1) `shouldBe` originalItem { dateCompleted = Just someDay }

@@ -89,17 +89,17 @@ data DoneResult = Done Int TodoItem |
 -- O(n), n is size of TodoFile
 -- XXX: Currently 1-based (that's what enumerate does). Ideally would be
 -- 0-based and we'd transform.
-doItem :: TodoFile -> Day -> Int -> Writer [DoneResult] TodoFile
+doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
 doItem file day index =
   if index > numItems || index < 1
-  then tell [NoSuchTask index] >> return file
+  then tell (S.singleton (NoSuchTask index)) >> return file
   else
     let todo = allItems !! (index - 1) in
     if isDone todo
-    then tell [AlreadyDone index todo] >> return file
+    then tell (S.singleton (AlreadyDone index todo)) >> return file
     else
       let newTodo = markAsDone todo day in
-      tell [Done index newTodo] >> return (replace file index newTodo)
+      tell (S.singleton (Done index newTodo)) >> return (replace file index newTodo)
   where allItems = todoFileItems file
         numItems = length allItems
         replace todoFile ndx item =
@@ -109,8 +109,13 @@ doItem file day index =
 -- XXX: Currently O(N * M), worst case O(N ** 2). Interesting exercise to
 -- rewrite as performant with lists, but maybe better just to replace core
 -- type with Vector?
-doItems :: TodoFile -> Day -> [Int] -> Writer [DoneResult] TodoFile
-doItems file day indexes = foldM (flip doItem day) file indexes
+
+-- XXX: There's a way to apply a function to the second element of a tuple
+-- using arrows. Use that.
+doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
+doItems file day indexes =
+  let (todo, results) = runWriter $ foldM (flip doItem day) file indexes in
+  (todo, toList results)
 
 
 instance Unparse TodoItem where
