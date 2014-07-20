@@ -147,7 +147,3 @@ updateTodoFile old = makeTodoFile (todoFileName old)
 
 todoFileItems :: TodoFile -> [TodoItem]
 todoFileItems = toList . todoFileItemsV
-
-
-mapTodos :: (TodoItem -> TodoItem) -> TodoFile -> TodoFile
-mapTodos f t = t { todoFileItemsV = (fmap f . todoFileItemsV $ t) }
