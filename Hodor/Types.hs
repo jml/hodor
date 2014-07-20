@@ -86,9 +86,9 @@ data DoneResult = Done Int TodoItem |
                   deriving (Show, Eq)
 
 
--- O(n), n is size of TodoFile
+-- O(log n), n is size of TodoFile
 -- XXX: Currently 1-based (that's what enumerate does). Ideally would be
--- 0-based and we'd transform.
+-- 0-based and we'd transform before we get here.
 doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
 doItem file day index =
   if index > numItems || index < 1
@@ -99,16 +99,13 @@ doItem file day index =
     then tell (S.singleton (AlreadyDone index todo)) >> return file
     else
       let newTodo = markAsDone todo day in
-      tell (S.singleton (Done index newTodo)) >> return (replace file index newTodo)
+      tell (S.singleton (Done index newTodo)) >> return (replace file (index - 1) newTodo)
   where allItems = todoFileItems file
         numItems = length allItems
+        -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
         replace todoFile ndx item =
-          onTodos (\items -> [ if i == ndx then item else x | (i, x) <- zip [1..] items]) todoFile
+          todoFile { todoFileItemsV = S.update ndx item (todoFileItemsV todoFile) }
 
-
--- XXX: Currently O(N * M), worst case O(N ** 2). Interesting exercise to
--- rewrite as performant with lists, but maybe better just to replace core
--- type with Vector?
 
 -- XXX: There's a way to apply a function to the second element of a tuple
 -- using arrows. Use that.
