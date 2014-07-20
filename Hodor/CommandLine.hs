@@ -44,14 +44,6 @@ data Config = Config {
 data Flag = TodoFile FilePath | DoneFile FilePath
 
 
-data UserError = UserError String
-                 deriving (Eq, Show)
-
-
-instance Error UserError where
-  strMsg = UserError
-
-
 options :: [OptDescr Flag]
 options =
     [ Option ['t'] ["todo-file"] (OptArg tFile "FILE") "location of todo file"
