@@ -5,6 +5,7 @@ module Hodor.Types where
 import Control.Monad.Writer
 import Data.Maybe (isJust)
 import Data.Time (Day, showGregorian)
+import qualified Data.Vector as V
 
 type Priority = Char
 
@@ -124,7 +125,7 @@ instance Unparse TodoItem where
 
 data TodoFile = TodoFile {
   todoFileName :: String,
-  todoFileItems :: [TodoItem]
+  todoFileItemsV :: V.Vector TodoItem
 } deriving (Show, Eq, Ord)
 
 
@@ -132,8 +133,22 @@ instance Unparse TodoFile where
   unparse = unlines . map unparse . todoFileItems
 
 
+makeTodoFile :: String -> [TodoItem] -> TodoFile
+makeTodoFile name items = TodoFile { todoFileName = name,
+                                     todoFileItemsV = V.fromList items }
+
+
+updateTodoFile :: TodoFile -> [TodoItem] -> TodoFile
+updateTodoFile old = makeTodoFile (todoFileName old)
+
+
+todoFileItems :: TodoFile -> [TodoItem]
+todoFileItems = V.toList . todoFileItemsV
+
+
 mapTodos :: (TodoItem -> TodoItem) -> TodoFile -> TodoFile
 mapTodos f = onTodos (map f)
 
 onTodos :: ([TodoItem] -> [TodoItem]) -> TodoFile -> TodoFile
-onTodos f todoFile = todoFile { todoFileItems = f (todoFileItems todoFile) }
+onTodos f todoFile =
+  todoFile { todoFileItemsV = (V.fromList . f . V.toList . todoFileItemsV) todoFile }

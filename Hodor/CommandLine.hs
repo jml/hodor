@@ -32,7 +32,12 @@ import Hodor (
 import Hodor.File (expandUser)
 import Hodor.Functional (enumerate)
 import Hodor.Parser (parseTodoFile)
-import Hodor.Types (doItems, DoneResult(..), isDone)
+import Hodor.Types (
+  doItems
+  , DoneResult(..)
+  , isDone
+  , updateTodoFile
+  )
 
 data Config = Config {
   todoFilePath :: FilePath,
@@ -168,7 +173,7 @@ cmdArchive _ = do
   todoFile <- readTodoFileEx todoPath
   let items = todoFileItems todoFile
       (doneItems, todoItems) = partition isDone items
-      newTodoFile = todoFile { todoFileItems = todoItems }
+      newTodoFile = updateTodoFile todoFile todoItems
       doneString = unlines . map unparse $ doneItems
   donePath <- fmap doneFilePath ask
   liftIO $ appendFile donePath doneString

@@ -15,7 +15,8 @@ import qualified Text.Parsec as P
 
 import Hodor.Functional (onLeft, unleft)
 import Hodor.Types (
-  TodoFile(TodoFile),
+  makeTodoFile,
+  TodoFile,
   TodoItem(TodoItem),
   Priority,
   Token(Bareword, ProjectToken, ContextToken),
@@ -36,7 +37,7 @@ instance Error ParseError where
 
 parseTodoFile :: FilePath -> String -> Either ParseError TodoFile
 parseTodoFile filename contents =
-  fmap (TodoFile filename) (parseTodoTxt filename contents)
+  fmap (makeTodoFile filename) (parseTodoTxt filename contents)
 
 
 parseTodoTxt :: FilePath -> String -> Either ParseError [TodoItem]

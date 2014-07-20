@@ -15,9 +15,12 @@ import Hodor.Types (
   dateCreated,
   description,
   doItems,
+  makeTodoFile,
   priority,
   projects,
-  TodoFile(..),
+  TodoFile,
+  todoFileName,
+  todoFileItems,
   unparse,
   )
 import Hodor.Parser (
@@ -103,7 +106,7 @@ main = hspec $ do
   describe "mark as done" $ do
     let someDay = fromGregorian 1982 12 25
     describe "when there are no todos" $ do
-      let emptyFile = TodoFile { todoFileName = "empty", todoFileItems = [] }
+      let emptyFile = makeTodoFile "empty" []
       it "reports no such task" $ do
         (execWriter $ doItems emptyFile someDay [2]) `shouldBe` [NoSuchTask 2]
       it "reports no such task for all given tasks" $ do
