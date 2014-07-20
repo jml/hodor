@@ -111,12 +111,13 @@ appMessage :: String -> String
 appMessage = printf "%s: %s" appName
 
 
-type HodorCommand = ReaderT Config (ErrorT String IO)
+type HodorM = ReaderT Config (ErrorT String IO)
+type HodorCommand = [String] -> HodorM ()
 
 
 -- Here we number items according to how they appear, but actually the number
 -- is intrinsic to the item, and should probably be associated when parsed.
-cmdList :: [String] -> HodorCommand ()
+cmdList :: HodorCommand
 cmdList _ = do
   -- ACTION: read file
   todoFile <- fmap todoFilePath ask >>= readTodoFileEx
@@ -135,7 +136,7 @@ cmdListPure todoFile =
         sortTodo = sortWith snd
 
 
-cmdAdd :: [String] -> HodorCommand ()
+cmdAdd :: HodorCommand
 cmdAdd args = do
   -- ACTION: get date if we need it
   addDate <- fmap dateOnAdd ask
@@ -161,7 +162,7 @@ cmdAddPure todoFile Nothing args =
   (item, unlines messages)
 
 
-cmdArchive :: [String] -> HodorCommand ()
+cmdArchive :: HodorCommand
 cmdArchive _ = do
   todoPath <- fmap todoFilePath ask
   todoFile <- readTodoFileEx todoPath
@@ -176,7 +177,7 @@ cmdArchive _ = do
   liftIO $ putStrLn $ appMessage $ printf "%s archived." todoPath
 
 
-cmdMarkAsDone :: [String] -> HodorCommand ()
+cmdMarkAsDone :: HodorCommand
 cmdMarkAsDone args = do
   items <- getItems args
   day <- liftIO today
@@ -233,7 +234,7 @@ replaceFile = writeFile
 --      - probably best to write more of the commands first
 
 
-commands :: M.Map String ([String] -> HodorCommand ())
+commands :: M.Map String HodorCommand
 commands = M.fromList [
   ("list", cmdList)
   , ("ls",   cmdList)
@@ -244,10 +245,11 @@ commands = M.fromList [
 
 
 -- XXX: Make the default command configurable
-defaultCommand :: [String] -> HodorCommand ()
+defaultCommand :: HodorCommand
 defaultCommand = cmdList
 
-getCommand :: (Error e, MonadError e m) => [String] -> m ([String] -> HodorCommand (), [String])
+
+getCommand :: (Error e, MonadError e m) => [String] -> m (HodorCommand, [String])
 getCommand (name:rest) =
   case M.lookup name commands of
     Just command -> return (command, rest)
