@@ -3,7 +3,7 @@ module Main where
 import Control.Monad.Writer
 import Data.Time (fromGregorian)
 import Test.Hspec
-import Text.ParserCombinators.Parsec (parse)
+import Text.Parsec (parse)
 
 import Hodor.Functional (onLeft)
 import Hodor.Types (

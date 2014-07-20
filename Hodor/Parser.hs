@@ -9,8 +9,9 @@ module Hodor.Parser (
 import Control.Monad.Error (Error, strMsg)
 import Data.Char (isSpace)
 import Data.Time (Day, fromGregorian)
-import Text.ParserCombinators.Parsec hiding (ParseError)
-import qualified Text.ParserCombinators.Parsec as P
+import Text.Parsec hiding (ParseError)
+import Text.Parsec.String (Parser)
+import qualified Text.Parsec as P
 
 import Hodor.Functional (onLeft, unleft)
 import Hodor.Types (
