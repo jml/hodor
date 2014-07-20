@@ -81,6 +81,7 @@ markAsDone item day | isDone item = item
 data DoneResult = Done Int TodoItem |
                   AlreadyDone Int TodoItem |
                   NoSuchTask Int
+                  deriving (Show, Eq)
 
 
 -- O(n), n is size of TodoFile
@@ -94,7 +95,9 @@ doItem file day index =
     let todo = allItems !! (index - 1) in
     if isDone todo
     then tell [AlreadyDone index todo] >> return file
-    else tell [Done index todo] >> return (replace file index $ markAsDone todo day)
+    else
+      let newTodo = markAsDone todo day in
+      tell [Done index newTodo] >> return (replace file index newTodo)
   where allItems = todoFileItems file
         numItems = length allItems
         replace todoFile ndx item =
