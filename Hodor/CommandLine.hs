@@ -6,7 +6,7 @@ import Control.Monad (liftM, forM_)
 import Control.Monad.Error (Error, ErrorT, mapErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Writer (runWriter)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Trans (liftIO, MonadIO)
 import Data.List (partition)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
@@ -31,7 +31,7 @@ import Hodor (
   )
 import Hodor.File (expandUser)
 import Hodor.Functional (enumerate, onLeft)
-import Hodor.Parser (ParseError, parseTodoFile)
+import Hodor.Parser (parseTodoFile)
 import Hodor.Types (doItems, DoneResult(..), isDone)
 
 data Config = Config {
@@ -78,15 +78,15 @@ tFile = TodoFile . fromMaybe defaultTodoFile
 dFile = DoneFile  . fromMaybe defaultDoneFile
 
 
-hodorOpts :: [String] -> Either UserError ([Flag], [String])
+hodorOpts :: (Error e) => [String] -> Either e ([Flag], [String])
 hodorOpts argv =
   case getOpt Permute options argv of
     (o,n,[]  ) -> return (o,n)
     (_,_,errs) -> throwError (usageError errs)
 
 
-usageError :: [String] -> UserError
-usageError errs = UserError (concat errs ++ usageInfo header options)
+usageError :: (Error e) => [String] -> e
+usageError errs = strMsg (concat errs ++ usageInfo header options)
                   where header = "Usage: hodor [OPTION...] "
 
 
@@ -102,13 +102,12 @@ getConfiguration ((DoneFile path):xs) =
 getConfiguration [] = defaultConfig
 
 
--- XXX: See hodorOpts for possible change to type signature
---readTodoFileEx :: FilePath -> ErrorT ParseError IO TodoFile
+readTodoFileEx :: (Error e, MonadIO m, MonadError e m) => FilePath -> m TodoFile
 readTodoFileEx path = do
   expanded <- liftIO $ expandUser path
   contents <- liftIO $ readFile expanded
   case parseTodoFile expanded contents of
-    Left e -> throwError e
+    Left e -> (throwError . strMsg . show) e
     Right r -> return r
 
 
@@ -117,7 +116,7 @@ appName :: String
 appName = "HODOR"
 
 
-type HodorCommand = ErrorT ParseError (ReaderT Config IO)
+type HodorCommand = ErrorT String (ReaderT Config IO)
 
 
 -- Here we number items according to how they appear, but actually the number
@@ -184,7 +183,7 @@ cmdArchive _ = do
 
 cmdMarkAsDone :: [String] -> HodorCommand ()
 cmdMarkAsDone args = do
-  items <- wrapError (strMsg . show) (getItems args)
+  items <- getItems args
   day <- liftIO today
   path <- fmap todoFilePath ask
   todoFile <- readTodoFileEx path
@@ -203,14 +202,14 @@ formatTodo :: Int -> TodoItem -> String
 formatTodo i t = printf "%02d %s" i (unparse t)
 
 
-getItems :: (MonadError UserError m) => [String] -> m [Int]
+getItems :: (Error e, MonadError e m) => [String] -> m [Int]
 -- XXX: Change this to use strMsg?
-getItems [] = throwError $ UserError "No items specified"
+getItems [] = throwError $ strMsg "No items specified"
 getItems xs =
   mapM (\x ->
          case readMaybe x of
            Just i -> return i
-           Nothing -> throwError $ UserError $ "Invalid number: " ++ x) xs
+           Nothing -> throwError $ strMsg $ "Invalid number: " ++ x) xs
 
 
 -- XXX: Making this separate because an atomic write would be better, but I
@@ -259,10 +258,11 @@ runHodorCommand cfg cmd =
   runReaderT (runErrorT $ wrapError show $ cmd) cfg
 
 
+getCommand :: (Error e) => [String] -> Either e ([String] -> HodorCommand (), [String])
 getCommand (name:rest) =
   case M.lookup name commands of
     Just command -> return (command, rest)
-    Nothing -> throwError $ UserError (concat ["No such command: ", name, "\n"])
+    Nothing -> throwError $ strMsg (concat ["No such command: ", name, "\n"])
 -- XXX: Make the default command configurable
 getCommand [] = return (cmdList, [])
 
@@ -273,10 +273,10 @@ main = do
   -- XXX: Classic staircase. Get rid of it once other things have settled
   -- down.
   case hodorOpts argv of
-    Left e -> (ioError . userError . show) e
+    Left e -> (ioError . userError) e
     Right (opts, args) ->
       case getCommand args of
-        Left e -> (ioError . userError . show) e
+        Left e -> (ioError . userError) e
         Right (cmd, rest) ->
           let config = getConfiguration opts in do
           result <- runHodorCommand config (cmd rest)
