@@ -8,7 +8,6 @@ module Hodor.Parser (
 
 import Control.Monad.Error (Error, strMsg)
 import Data.Char (isSpace)
-import Data.Either (lefts)
 import Data.Time (Day, fromGregorian)
 import Text.ParserCombinators.Parsec hiding (ParseError)
 import qualified Text.ParserCombinators.Parsec as P
