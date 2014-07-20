@@ -206,7 +206,6 @@ formatTodo i t = printf "%02d %s" i (unparse t)
 
 
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]
--- XXX: Change this to use strMsg?
 getItems [] = throwError $ strMsg "No items specified"
 getItems xs =
   mapM (\x ->
@@ -252,13 +251,16 @@ commands = M.fromList [
   ]
 
 
+-- XXX: Make the default command configurable
+defaultCommand :: [String] -> HodorCommand ()
+defaultCommand = cmdList
+
 getCommand :: (Error e, MonadError e m) => [String] -> m ([String] -> HodorCommand (), [String])
 getCommand (name:rest) =
   case M.lookup name commands of
     Just command -> return (command, rest)
     Nothing -> throwError $ strMsg (concat ["No such command: ", name, "\n"])
--- XXX: Make the default command configurable
-getCommand [] = return (cmdList, [])
+getCommand [] = return (defaultCommand, [])
 
 
 main :: IO ()
