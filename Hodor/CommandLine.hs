@@ -251,7 +251,7 @@ getCommand :: (Error e, MonadError e m) => [String] -> m ([String] -> HodorComma
 getCommand (name:rest) =
   case M.lookup name commands of
     Just command -> return (command, rest)
-    Nothing -> throwError $ strMsg (concat ["No such command: ", name, "\n"])
+    Nothing -> throwError $ usageError ["No such command: ", name, "\n"]
 getCommand [] = return (defaultCommand, [])
 
 
