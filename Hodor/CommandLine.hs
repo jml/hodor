@@ -115,6 +115,9 @@ readTodoFileEx path = do
 appName :: String
 appName = "HODOR"
 
+appMessage :: String -> String
+appMessage = printf "%s: %s" appName
+
 
 type HodorCommand = ReaderT Config (ErrorT String IO)
 
@@ -134,7 +137,7 @@ cmdListPure todoFile =
   let items = todoFileItems todoFile
       count = length items
       todoLines = map formatOneTodo $ sortTodo $ enumerate $ map unparse $ items
-      summary = printf "%s: %d of %d items shown" appName count count in
+      summary = appMessage $ printf "%d of %d items shown" count count in
   unlines $ todoLines ++ ["--", summary]
   where formatOneTodo (i, t) = printf "%02d %s" i t
         sortTodo = sortWith snd
@@ -154,7 +157,7 @@ cmdAdd args = do
   todoFileName <- fmap todoFilePath ask
   liftIO $ appendFile todoFileName $ item
   -- ACTION: display output
-  liftIO $ putStrLn $ output
+  liftIO $ putStr $ output
 
 
 cmdAddPure :: TodoFile -> Maybe Day -> [String] -> (String, String)
@@ -162,8 +165,8 @@ cmdAddPure todoFile (Just day) args = cmdAddPure todoFile Nothing (show day:args
 cmdAddPure todoFile Nothing args =
   let item = unwords args ++ "\n"
       count = (length $ todoFileItems todoFile) + 1
-      message = printf "%02d %s\n%s: %d added." count item appName count in
-  (item, message)
+      messages = [printf "%02d %s" count item, appMessage $ printf "%d added." count] in
+  (item, unlines messages)
 
 
 cmdArchive :: [String] -> HodorCommand ()
@@ -178,7 +181,7 @@ cmdArchive _ = do
   liftIO $ appendFile donePath doneString
   liftIO $ replaceFile todoPath (unparse newTodoFile)
   liftIO $ putStr doneString
-  liftIO $ putStrLn $ printf "%s: %s archived." appName todoPath
+  liftIO $ putStrLn $ appMessage $ printf "%s archived." todoPath
 
 
 cmdMarkAsDone :: [String] -> HodorCommand ()
@@ -192,10 +195,10 @@ cmdMarkAsDone args = do
   forM_ doneItems (liftIO . putStr . format)
   where
     format (Done i t) = unlines [formatTodo i t,
-                                 printf "%s: %d marked as done." appName i]
+                                 appMessage $ printf "%d marked as done." i]
     format (AlreadyDone i t) = unlines [formatTodo i t,
-                                        printf "%s: %d is already marked done." appName i]
-    format (NoSuchTask i) = printf "%s: No task %d\n" appName i
+                                        appMessage $ printf "%s: %d is already marked done." i]
+    format (NoSuchTask i) = appMessage $ printf "%s: No task %d\n" i
 
 
 formatTodo :: Int -> TodoItem -> String
