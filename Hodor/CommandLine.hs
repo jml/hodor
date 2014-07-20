@@ -2,8 +2,8 @@
 
 module Hodor.CommandLine where
 
-import Control.Monad (liftM, forM_)
-import Control.Monad.Error (Error, ErrorT, mapErrorT, MonadError, runErrorT, strMsg, throwError)
+import Control.Monad (forM_)
+import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Writer (runWriter)
 import Control.Monad.Trans (liftIO, MonadIO)
@@ -30,7 +30,7 @@ import Hodor (
   , unparse
   )
 import Hodor.File (expandUser)
-import Hodor.Functional (enumerate, onLeft)
+import Hodor.Functional (enumerate)
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (doItems, DoneResult(..), isDone)
 
@@ -78,7 +78,7 @@ tFile = TodoFile . fromMaybe defaultTodoFile
 dFile = DoneFile  . fromMaybe defaultDoneFile
 
 
-hodorOpts :: (Error e) => [String] -> Either e ([Flag], [String])
+hodorOpts :: (Error e, MonadError e m) => [String] -> m ([Flag], [String])
 hodorOpts argv =
   case getOpt Permute options argv of
     (o,n,[]  ) -> return (o,n)
@@ -249,11 +249,7 @@ commands = M.fromList [
   ]
 
 
-wrapError :: Monad m => (e -> e') -> ErrorT e m a -> ErrorT e' m a
-wrapError = mapErrorT . liftM . onLeft
-
-
-getCommand :: (Error e) => [String] -> Either e ([String] -> HodorCommand (), [String])
+getCommand :: (Error e, MonadError e m) => [String] -> m ([String] -> HodorCommand (), [String])
 getCommand (name:rest) =
   case M.lookup name commands of
     Just command -> return (command, rest)
@@ -265,16 +261,11 @@ getCommand [] = return (cmdList, [])
 main :: IO ()
 main = do
   argv <- getArgs
-  -- XXX: Classic staircase. Get rid of it once other things have settled
-  -- down.
-  case hodorOpts argv of
+  result <- runErrorT $ do
+    (opts, args) <- hodorOpts argv
+    (cmd, rest) <- getCommand args
+    let config = getConfiguration opts
+    runReaderT (cmd rest) config
+  case result of
     Left e -> (ioError . userError) e
-    Right (opts, args) ->
-      case getCommand args of
-        Left e -> (ioError . userError) e
-        Right (cmd, rest) ->
-          let config = getConfiguration opts in do
-          result <- runErrorT $ wrapError show $ (runReaderT (cmd rest) config)
-          case result of
-            Left e -> (ioError . userError) e
-            Right _ -> return ()
+    Right _ -> return ()
