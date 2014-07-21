@@ -21,6 +21,7 @@ import Hodor.Types (
   todoFileName,
   todoFileItems,
   unparse,
+  unsafeGetItem
   )
 import Hodor.Parser (
   ParseError(ParseError),
@@ -123,11 +124,11 @@ main = hspec $ do
             Right r -> r
       it "reports that it marks item as done" $ do
         let index = 2
-            originalItem = todoFileItems sampleTodo !! (index - 1)
+            originalItem = unsafeGetItem sampleTodo index
             (_, events) = doItems sampleTodo someDay [index]
         events `shouldBe` [Done index originalItem { dateCompleted = Just someDay } ]
       it "marks the item as done" $ do
         let index = 2
-            originalItem = todoFileItems sampleTodo !! (index - 1)
+            originalItem = unsafeGetItem sampleTodo index
             todoWriter = doItems sampleTodo someDay [index]
-        (todoFileItems $ fst todoWriter) !! (index - 1) `shouldBe` originalItem { dateCompleted = Just someDay }
+        unsafeGetItem (fst todoWriter) index `shouldBe` originalItem { dateCompleted = Just someDay }

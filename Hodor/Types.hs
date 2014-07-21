@@ -105,6 +105,13 @@ getItem file i =
   else Nothing
 
 
+unsafeGetItem :: TodoFile -> Int -> TodoItem
+unsafeGetItem file i =
+  case getItem file i of
+    Just item -> item
+    Nothing -> error $ "No such item: " ++ (show i)
+
+
 -- XXX: There's a way to apply a function to the second element of a tuple
 -- using arrows. Use that.
 doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
