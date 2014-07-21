@@ -12,7 +12,3 @@ onLeft _ (Right x) = Right x
 unleft :: Either a b -> a
 unleft (Left x) = x
 unleft _ = throw $ AssertionFailed $ "Expected Left, got Right"
-
-
-enumerate :: [a] -> [(Int, a)]
-enumerate = zip [1..]
