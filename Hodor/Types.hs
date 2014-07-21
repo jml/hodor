@@ -8,6 +8,8 @@ import Data.Maybe (isJust)
 import Data.Time (Day, showGregorian)
 import qualified Data.Sequence as S
 
+-- XXX: Consider making this newtype and incorporating the Maybe so we can
+-- have a better sort implementation.
 type Priority = Char
 
 data Project = Project String deriving (Eq, Ord)
@@ -23,6 +25,8 @@ instance Show Context where
 
 data Token = Bareword String | ProjectToken String | ContextToken String deriving (Eq, Ord, Show)
 
+-- XXX: Move all the 'unparse' logic together, perhaps to a separate module.
+-- TODO: UNTESTED: all unparse logic
 class Unparse a where
   unparse :: a -> String
 
@@ -56,33 +60,37 @@ data TodoItem = TodoItem {
 -- XXX: The 'Ord' haskell picks isn't the one todo uses. Not sure if that
 -- matters.
 
+-- TODO: UNTESTED: projects
 projects :: TodoItem -> [Project]
 projects item = [ Project p | ProjectToken p <- (tokens item) ]
 
+-- TODO: UNTESTED: contexts
 contexts :: TodoItem -> [Context]
 contexts item = [ Context p | ContextToken p <- (tokens item) ]
 
+-- TODO: UNTESTED: description
 description :: TodoItem -> String
 description item = concatMap unparse (tokens item)
 
-
+-- TODO: UNTESTED: isDone
 isDone :: TodoItem -> Bool
 isDone = isJust . dateCompleted
 
 -- XXX: How do I do post-conditions in Haskell?
+-- TODO: UNTESTED: markAsDone
 markAsDone :: TodoItem -> Day -> TodoItem
 markAsDone item day | isDone item = item
                     | otherwise   = item { dateCompleted = Just day }
 
 
+-- XXX: Possibly make this a more generic 'event' data type
 data DoneResult = Done Int TodoItem |
                   AlreadyDone Int TodoItem |
                   NoSuchTask Int
                   deriving (Show, Eq)
 
 
--- XXX: Currently 1-based (that's what enumerate does). Ideally would be
--- 0-based and we'd transform before we get here.
+-- XXX: Move doItem with all the TodoFile functions
 doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
 doItem file day i =
   case getItem file i of
@@ -98,6 +106,8 @@ doItem file day i =
           todoFile { todoFileItemsV = S.update ndx item (todoFileItemsV todoFile) }
 
 
+-- TODO: UNTESTED: getItem
+-- XXX: Move getItem with all the TodoFile functions
 getItem :: TodoFile -> Int -> Maybe TodoItem
 getItem file i =
   if 1 <= i && i <= numItems file
@@ -105,6 +115,8 @@ getItem file i =
   else Nothing
 
 
+-- TODO: UNTESTED: unsafeGetItem
+-- XXX: Move unsafeGetItem with all the TodoFile functions
 unsafeGetItem :: TodoFile -> Int -> TodoItem
 unsafeGetItem file i =
   case getItem file i of
@@ -114,12 +126,15 @@ unsafeGetItem file i =
 
 -- XXX: There's a way to apply a function to the second element of a tuple
 -- using arrows. Use that.
+-- XXX: Move 'doItems' together with all the TodoFile functions
 doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
 doItems file day indexes =
   let (todo, results) = runWriter $ foldM (flip doItem day) file indexes in
   (todo, toList results)
 
 
+-- TODO: UNTESTED: archive
+-- XXX: Move 'archive' together with all the TodoFile functions
 archive :: TodoFile -> (TodoFile, [TodoItem])
 archive file =
   let items = todoFileItemsV file
@@ -128,6 +143,7 @@ archive file =
   in (newTodoFile, toList doneItems)
 
 
+-- XXX: Move the Unparse TodoItem declaration together with the rest
 instance Unparse TodoItem where
   unparse item = concat $
     case (dateCompleted item) of
@@ -138,6 +154,9 @@ instance Unparse TodoItem where
 -- XXX: Could make this a NamedList type class or something, implement
 -- functor, foldable & traversable, and then make a specific instance
 -- (newtype?) for todo.
+
+-- XXX: Come up with (or research) better naming convention for internal
+-- details, and apply this to record accessors.
 
 data TodoFile = TodoFile {
   todoFileName :: String,
@@ -158,6 +177,7 @@ updateTodoFile :: TodoFile -> [TodoItem] -> TodoFile
 updateTodoFile old = makeTodoFile (todoFileName old)
 
 
+-- XXX: Stop exporting this: it's just a compatibility method.
 todoFileItems :: TodoFile -> [TodoItem]
 todoFileItems = toList . todoFileItemsV
 

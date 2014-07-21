@@ -30,6 +30,12 @@ import Hodor.Parser (
   )
 
 
+-- XXX: It's really hard to inspect this and figure out what's tested, or to
+-- find the tests for a particular thing. Look into other ways to test (HUnit,
+-- QuickCheck)
+
+-- XXX: Try to split up by module being tested.
+
 testParse parser = onLeft ParseError . parse parser "(unknown)"
 
 shouldHave x p y = (fmap p x) `shouldBe` (return y)
