@@ -168,11 +168,13 @@ instance Unparse TodoFile where
   unparse = unlines . toList . fmap unparse . todoFileItemsV
 
 
+-- TODO: UNTESTED: makeTodoFile
 makeTodoFile :: String -> [TodoItem] -> TodoFile
 makeTodoFile name items = TodoFile { todoFileName = name,
                                      todoFileItemsV = S.fromList items }
 
 
+-- TODO: UNTESTED: updateTodoFile
 updateTodoFile :: TodoFile -> [TodoItem] -> TodoFile
 updateTodoFile old = makeTodoFile (todoFileName old)
 
@@ -182,5 +184,6 @@ todoFileItems :: TodoFile -> [TodoItem]
 todoFileItems = toList . todoFileItemsV
 
 
+-- TODO: UNTESTED: numItems
 numItems :: TodoFile -> Int
 numItems = S.length . todoFileItemsV
