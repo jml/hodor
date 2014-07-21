@@ -61,6 +61,9 @@ data TodoItem = TodoItem {
 -- XXX: The 'Ord' haskell picks isn't the one todo uses. Not sure if that
 -- matters.
 
+-- XXX: Possibly make a type for numbered todo items? Gets used in a lot of
+-- places. See XXX: NumberedTodoItem
+
 -- TODO: UNTESTED: projects
 projects :: TodoItem -> [Project]
 projects item = [ Project p | ProjectToken p <- (tokens item) ]
@@ -92,55 +95,6 @@ data DoneResult = Done Int TodoItem |
                   deriving (Show, Eq)
 
 
--- XXX: Move doItem with all the TodoFile functions
-doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
-doItem file day i =
-  case getItem file i of
-    Nothing -> tell (S.singleton (NoSuchTask i)) >> return file
-    Just todo ->
-      if isDone todo
-      then tell (S.singleton (AlreadyDone i todo)) >> return file
-      else
-        let newTodo = markAsDone todo day in
-        tell (S.singleton (Done i newTodo)) >> return (replace file (i - 1) newTodo)
-  where -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
-        replace todoFile ndx item =
-          todoFile { todoFileItemsV = S.update ndx item (todoFileItemsV todoFile) }
-
-
--- TODO: UNTESTED: getItem
--- XXX: Move getItem with all the TodoFile functions
-getItem :: TodoFile -> Int -> Maybe TodoItem
-getItem file i =
-  if 1 <= i && i <= numItems file
-  then Just (todoFileItemsV file `S.index` (i - 1))
-  else Nothing
-
-
--- TODO: UNTESTED: unsafeGetItem
--- XXX: Move unsafeGetItem with all the TodoFile functions
-unsafeGetItem :: TodoFile -> Int -> TodoItem
-unsafeGetItem file i =
-  case getItem file i of
-    Just item -> item
-    Nothing -> error $ "No such item: " ++ (show i)
-
-
--- XXX: Move 'doItems' together with all the TodoFile functions
-doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
-doItems file day = second toList . runWriter . foldM (flip doItem day) file
-
-
--- TODO: UNTESTED: archive
--- XXX: Move 'archive' together with all the TodoFile functions
-archive :: TodoFile -> (TodoFile, [TodoItem])
-archive file =
-  let items = todoFileItemsV file
-      (doneItems, todoItems) = S.partition isDone items
-      newTodoFile = file { todoFileItemsV = todoItems }
-  in (newTodoFile, toList doneItems)
-
-
 -- XXX: Move the Unparse TodoItem declaration together with the rest
 instance Unparse TodoItem where
   unparse item = concat $
@@ -166,10 +120,6 @@ instance Unparse TodoFile where
   unparse = unlines . toList . fmap unparse . todoFileItemsV
 
 
--- XXX: Possibly make a type for numbered todo items? Gets used in a lot of
--- places. See XXX: NumberedTodoItem
-
-
 -- TODO: UNTESTED: makeTodoFile
 makeTodoFile :: String -> [TodoItem] -> TodoFile
 makeTodoFile name items = TodoFile { todoFileName = name,
@@ -189,3 +139,47 @@ listItems = zip [1..] . toList . todoFileItemsV
 -- TODO: UNTESTED: numItems
 numItems :: TodoFile -> Int
 numItems = S.length . todoFileItemsV
+
+
+-- TODO: UNTESTED: getItem
+getItem :: TodoFile -> Int -> Maybe TodoItem
+getItem file i =
+  if 1 <= i && i <= numItems file
+  then Just (todoFileItemsV file `S.index` (i - 1))
+  else Nothing
+
+
+-- TODO: UNTESTED: unsafeGetItem
+unsafeGetItem :: TodoFile -> Int -> TodoItem
+unsafeGetItem file i =
+  case getItem file i of
+    Just item -> item
+    Nothing -> error $ "No such item: " ++ (show i)
+
+
+-- TODO: UNTESTED: archive
+archive :: TodoFile -> (TodoFile, [TodoItem])
+archive file =
+  let items = todoFileItemsV file
+      (doneItems, todoItems) = S.partition isDone items
+      newTodoFile = file { todoFileItemsV = todoItems }
+  in (newTodoFile, toList doneItems)
+
+
+doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
+doItem file day i =
+  case getItem file i of
+    Nothing -> tell (S.singleton (NoSuchTask i)) >> return file
+    Just todo ->
+      if isDone todo
+      then tell (S.singleton (AlreadyDone i todo)) >> return file
+      else
+        let newTodo = markAsDone todo day in
+        tell (S.singleton (Done i newTodo)) >> return (replace file (i - 1) newTodo)
+  where -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
+        replace todoFile ndx item =
+          todoFile { todoFileItemsV = S.update ndx item (todoFileItemsV todoFile) }
+
+
+doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
+doItems file day = second toList . runWriter . foldM (flip doItem day) file
