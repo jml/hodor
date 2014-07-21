@@ -37,7 +37,10 @@ import Hodor.Types (
   )
 
 
+-- XXX: Revisit error type (maybe we should have something more abstracted
+-- than String)
 type HodorM = ReaderT Config (ErrorT String IO)
+-- XXX: Try to wrap this up in a newtype, for greater encapsulation
 type HodorCommand = [String] -> HodorM ()
 
 runHodorCommand :: HodorCommand -> Config -> [String] -> IO (Either String ())
