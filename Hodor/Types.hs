@@ -84,6 +84,7 @@ markAsDone item day | isDone item = item
 
 
 -- XXX: Possibly make this a more generic 'event' data type
+-- XXX: NumberedTodoItem
 data DoneResult = Done Int TodoItem |
                   AlreadyDone Int TodoItem |
                   NoSuchTask Int
@@ -168,6 +169,10 @@ instance Unparse TodoFile where
   unparse = unlines . toList . fmap unparse . todoFileItemsV
 
 
+-- XXX: Possibly make a type for numbered todo items? Gets used in a lot of
+-- places. See XXX: NumberedTodoItem
+
+
 -- TODO: UNTESTED: makeTodoFile
 makeTodoFile :: String -> [TodoItem] -> TodoFile
 makeTodoFile name items = TodoFile { todoFileName = name,
@@ -179,6 +184,7 @@ updateTodoFile :: TodoFile -> [TodoItem] -> TodoFile
 updateTodoFile old = makeTodoFile (todoFileName old)
 
 
+-- XXX: NumberedTodoItem
 listItems :: TodoFile -> [(Int, TodoItem)]
 listItems = zip [1..] . toList . todoFileItemsV
 

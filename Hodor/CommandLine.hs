@@ -134,6 +134,7 @@ cmdListPure todoFile =
       todoLines = getTodoLines todoFile
       summary = appMessage $ printf "%d of %d items shown" count count in
   unlines $ todoLines ++ ["--", summary]
+  -- XXX: NumberedTodoItem
   where formatOneTodo (i, t) = printf "%02d %s" i t
         sortTodo = sortWith snd
         getTodoLines = map formatOneTodo . sortTodo . map (second unparse) . listItems
@@ -161,6 +162,7 @@ cmdAddPure todoFile (Just day) args = cmdAddPure todoFile Nothing (show day:args
 cmdAddPure todoFile Nothing args =
   let item = unwords args ++ "\n"
       count = numItems todoFile + 1
+      -- XXX: NumberedTodoItem
       messages = [printf "%02d %s" count item, appMessage $ printf "%d added." count] in
   (item, unlines messages)
 
@@ -195,6 +197,7 @@ cmdMarkAsDone args = do
     format (NoSuchTask i) = appMessage $ printf "%s: No task %d\n" i
 
 
+-- XXX: NumberedTodoItem
 formatTodo :: Int -> TodoItem -> String
 formatTodo i t = printf "%02d %s" i (unparse t)
 
@@ -234,6 +237,8 @@ replaceFile = writeFile
 --      - perhaps could define some kind of monad that wraps all of this up?
 --      - probably best to write more of the commands first
 
+
+-- XXX: Move all the commands to a separate module.
 
 commands :: M.Map String HodorCommand
 commands = M.fromList [
