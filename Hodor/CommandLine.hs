@@ -31,9 +31,10 @@ import Hodor.File (expandUser)
 import Hodor.Functional (enumerate)
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
-  archive,
-  doItems
+  archive
+  , doItems
   , DoneResult(..)
+  , numItems
   )
 
 data Config = Config {
@@ -159,7 +160,7 @@ cmdAddPure :: TodoFile -> Maybe Day -> [String] -> (String, String)
 cmdAddPure todoFile (Just day) args = cmdAddPure todoFile Nothing (show day:args)
 cmdAddPure todoFile Nothing args =
   let item = unwords args ++ "\n"
-      count = (length $ todoFileItems todoFile) + 1
+      count = numItems todoFile + 1
       messages = [printf "%02d %s" count item, appMessage $ printf "%d added." count] in
   (item, unlines messages)
 
