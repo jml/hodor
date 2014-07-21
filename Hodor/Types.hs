@@ -2,6 +2,7 @@
 
 module Hodor.Types where
 
+import Control.Arrow (second)
 import Control.Monad.Writer
 import Data.Foldable (toList)
 import Data.Maybe (isJust)
@@ -125,13 +126,9 @@ unsafeGetItem file i =
     Nothing -> error $ "No such item: " ++ (show i)
 
 
--- XXX: There's a way to apply a function to the second element of a tuple
--- using arrows. Use that.
 -- XXX: Move 'doItems' together with all the TodoFile functions
 doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
-doItems file day indexes =
-  let (todo, results) = runWriter $ foldM (flip doItem day) file indexes in
-  (todo, toList results)
+doItems file day = second toList . runWriter . foldM (flip doItem day) file
 
 
 -- TODO: UNTESTED: archive
