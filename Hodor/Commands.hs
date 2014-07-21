@@ -1,8 +1,8 @@
 module Hodor.Commands where
 
 import Control.Arrow (second)
-import Control.Monad.Error (Error, ErrorT, MonadError, strMsg, throwError)
-import Control.Monad.Reader (ask, ReaderT)
+import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
+import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Data.Foldable (forM_)
 import Data.Time (
@@ -40,6 +40,8 @@ import Hodor.Types (
 type HodorM = ReaderT Config (ErrorT String IO)
 type HodorCommand = [String] -> HodorM ()
 
+runHodorCommand :: HodorCommand -> Config -> [String] -> IO (Either String ())
+runHodorCommand cmd cfg rest = runErrorT $ runReaderT (cmd rest) cfg
 
 appName :: String
 appName = "HODOR"

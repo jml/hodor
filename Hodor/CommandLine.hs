@@ -12,10 +12,11 @@ import System.Environment (getArgs)
 
 import Hodor.Commands (
   HodorCommand,
-  cmdMarkAsDone,
   cmdAdd,
+  cmdArchive,
   cmdList,
-  cmdArchive
+  cmdMarkAsDone,
+  runHodorCommand
   )
 import Hodor.Config
 
@@ -86,12 +87,13 @@ getCommand [] = return (defaultCommand, [])
 main :: IO ()
 main = do
   argv <- getArgs
-  -- XXX: This breaks the abstraction around HodorCommand.
-  result <- runErrorT $ do
+  setup <- runErrorT $ do
     (opts, args) <- hodorOpts argv
     (cmd, rest) <- getCommand args
-    let config = getConfiguration opts
-    runReaderT (cmd rest) config
+    return (cmd, getConfiguration opts, rest)
+  result <- case setup of
+    Left e -> (ioError . userError) e
+    Right (cmd, cfg, rest) -> runHodorCommand cmd cfg rest
   case result of
     Left e -> (ioError . userError) e
     Right _ -> return ()
