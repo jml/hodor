@@ -10,7 +10,6 @@ module Hodor (
   readTodoFile,
   priority,
   projects,
-  todoFileItems,
   todoFileName,
   Project,
   Context,
@@ -35,7 +34,6 @@ import Hodor.Types (
   markAsDone,
   priority,
   projects,
-  todoFileItems,
   todoFileName,
   unparse)
 

@@ -179,11 +179,6 @@ updateTodoFile :: TodoFile -> [TodoItem] -> TodoFile
 updateTodoFile old = makeTodoFile (todoFileName old)
 
 
--- XXX: Stop exporting this: it's just a compatibility method.
-todoFileItems :: TodoFile -> [TodoItem]
-todoFileItems = toList . todoFileItemsV
-
-
 listItems :: TodoFile -> [(Int, TodoItem)]
 listItems = zip [1..] . toList . todoFileItemsV
 
