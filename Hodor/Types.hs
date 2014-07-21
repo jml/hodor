@@ -139,7 +139,7 @@ data TodoFile = TodoFile {
 
 
 instance Unparse TodoFile where
-  unparse = unlines . map unparse . todoFileItems
+  unparse = unlines . toList . fmap unparse . todoFileItemsV
 
 
 makeTodoFile :: String -> [TodoItem] -> TodoFile
