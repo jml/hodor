@@ -84,20 +84,25 @@ data DoneResult = Done Int TodoItem |
 -- XXX: Currently 1-based (that's what enumerate does). Ideally would be
 -- 0-based and we'd transform before we get here.
 doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
-doItem file day index =
-  if index > (numItems file) || index < 1
-  then tell (S.singleton (NoSuchTask index)) >> return file
-  else
-    let todo = allItems !! (index - 1) in
-    if isDone todo
-    then tell (S.singleton (AlreadyDone index todo)) >> return file
-    else
-      let newTodo = markAsDone todo day in
-      tell (S.singleton (Done index newTodo)) >> return (replace file (index - 1) newTodo)
-  where allItems = todoFileItems file
-        -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
+doItem file day i =
+  case getItem file i of
+    Nothing -> tell (S.singleton (NoSuchTask i)) >> return file
+    Just todo ->
+      if isDone todo
+      then tell (S.singleton (AlreadyDone i todo)) >> return file
+      else
+        let newTodo = markAsDone todo day in
+        tell (S.singleton (Done i newTodo)) >> return (replace file (i - 1) newTodo)
+  where -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
         replace todoFile ndx item =
           todoFile { todoFileItemsV = S.update ndx item (todoFileItemsV todoFile) }
+
+
+getItem :: TodoFile -> Int -> Maybe TodoItem
+getItem file i =
+  if 1 <= i && i <= numItems file
+  then Just (todoFileItemsV file `S.index` (i - 1))
+  else Nothing
 
 
 -- XXX: There's a way to apply a function to the second element of a tuple
