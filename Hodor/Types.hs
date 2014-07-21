@@ -85,7 +85,7 @@ data DoneResult = Done Int TodoItem |
 -- 0-based and we'd transform before we get here.
 doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
 doItem file day index =
-  if index > numItems || index < 1
+  if index > (numItems file) || index < 1
   then tell (S.singleton (NoSuchTask index)) >> return file
   else
     let todo = allItems !! (index - 1) in
@@ -95,7 +95,6 @@ doItem file day index =
       let newTodo = markAsDone todo day in
       tell (S.singleton (Done index newTodo)) >> return (replace file (index - 1) newTodo)
   where allItems = todoFileItems file
-        numItems = length allItems
         -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
         replace todoFile ndx item =
           todoFile { todoFileItemsV = S.update ndx item (todoFileItemsV todoFile) }
@@ -149,3 +148,7 @@ updateTodoFile old = makeTodoFile (todoFileName old)
 
 todoFileItems :: TodoFile -> [TodoItem]
 todoFileItems = toList . todoFileItemsV
+
+
+numItems :: TodoFile -> Int
+numItems = S.length . todoFileItemsV
