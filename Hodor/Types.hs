@@ -56,12 +56,6 @@ data TodoItem = TodoItem {
 -- XXX: The 'Ord' haskell picks isn't the one todo uses. Not sure if that
 -- matters.
 
-defaultTodoItem :: TodoItem
-defaultTodoItem = TodoItem { dateCompleted = Nothing,
-                             priority = Nothing,
-                             dateCreated = Nothing,
-                             tokens = [] }
-
 projects :: TodoItem -> [Project]
 projects item = [ Project p | ProjectToken p <- (tokens item) ]
 
