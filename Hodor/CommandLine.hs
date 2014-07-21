@@ -3,7 +3,7 @@
 module Hodor.CommandLine where
 
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
-import Control.Monad.Reader (runReaderT)
+import Control.Monad.Trans (lift)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
 import System.Console.GetOpt
@@ -87,13 +87,10 @@ getCommand [] = return (defaultCommand, [])
 main :: IO ()
 main = do
   argv <- getArgs
-  setup <- runErrorT $ do
+  result <- runErrorT $ do
     (opts, args) <- hodorOpts argv
     (cmd, rest) <- getCommand args
-    return (cmd, getConfiguration opts, rest)
-  result <- case setup of
-    Left e -> (ioError . userError) e
-    Right (cmd, cfg, rest) -> runHodorCommand cmd cfg rest
+    lift $ runHodorCommand cmd (getConfiguration opts) rest
   case result of
     Left e -> (ioError . userError) e
     Right _ -> return ()
