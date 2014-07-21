@@ -9,6 +9,7 @@ import Data.Maybe (isJust)
 import Data.Time (Day, showGregorian)
 import qualified Data.Sequence as S
 
+
 -- XXX: Consider making this newtype and incorporating the Maybe so we can
 -- have a better sort implementation.
 type Priority = Char
@@ -18,6 +19,7 @@ data Project = Project String deriving (Eq, Ord)
 instance Show Project where
   show (Project p) = '+':p
 
+
 data Context = Context String deriving (Eq, Ord)
 
 instance Show Context where
@@ -25,31 +27,6 @@ instance Show Context where
 
 
 data Token = Bareword String | ProjectToken String | ContextToken String deriving (Eq, Ord, Show)
-
--- XXX: Move all the 'unparse' logic together, perhaps to a separate module.
--- TODO: UNTESTED: all unparse logic
-class Unparse a where
-  unparse :: a -> String
-
-
-instance Unparse Token where
-  unparse (Bareword string) = string
-  unparse (ProjectToken string) = '+':string
-  unparse (ContextToken string) = '@':string
-
-
-instance (Unparse a) => Unparse (Maybe a) where
-  unparse Nothing = ""
-  unparse (Just x) = unparse x
-
-
-instance Unparse Day where
-  unparse x = showGregorian x ++ " "
-
-
-instance Unparse Priority where
-  unparse p = ['(', p, ')', ' ']
-
 
 data TodoItem = TodoItem {
   dateCompleted :: Maybe Day,
@@ -95,12 +72,6 @@ data DoneResult = Done Int TodoItem |
                   deriving (Show, Eq)
 
 
--- XXX: Move the Unparse TodoItem declaration together with the rest
-instance Unparse TodoItem where
-  unparse item = concat $
-    case (dateCompleted item) of
-      Nothing -> [unparse (priority item), unparse (dateCreated item), (description item)]
-      Just completed -> ["x ", unparse completed, unparse (dateCreated item), (description item)]
 
 
 -- XXX: Could make this a NamedList type class or something, implement
@@ -114,10 +85,6 @@ data TodoFile = TodoFile {
   todoFileName :: String,
   todoFileItemsV :: S.Seq TodoItem
 } deriving (Show, Eq, Ord)
-
-
-instance Unparse TodoFile where
-  unparse = unlines . toList . fmap unparse . todoFileItemsV
 
 
 -- TODO: UNTESTED: makeTodoFile
@@ -183,3 +150,44 @@ doItem file day i =
 
 doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
 doItems file day = second toList . runWriter . foldM (flip doItem day) file
+
+
+{- Turn todos back into strings. -}
+
+-- TODO: UNTESTED: all unparse logic
+
+-- XXX: Would like to move this to a separate module, but since 'description'
+-- depends on unparse I don't know how to do that sanely.
+
+class Unparse a where
+  unparse :: a -> String
+
+
+instance Unparse Token where
+  unparse (Bareword string) = string
+  unparse (ProjectToken string) = '+':string
+  unparse (ContextToken string) = '@':string
+
+
+instance (Unparse a) => Unparse (Maybe a) where
+  unparse Nothing = ""
+  unparse (Just x) = unparse x
+
+
+instance Unparse Day where
+  unparse x = showGregorian x ++ " "
+
+
+instance Unparse Priority where
+  unparse p = ['(', p, ')', ' ']
+
+
+instance Unparse TodoItem where
+  unparse item = concat $
+    case (dateCompleted item) of
+      Nothing -> [unparse (priority item), unparse (dateCreated item), (description item)]
+      Just completed -> ["x ", unparse completed, unparse (dateCreated item), (description item)]
+
+
+instance Unparse TodoFile where
+  unparse = unlines . toList . fmap unparse . todoFileItemsV
