@@ -15,6 +15,7 @@ import Hodor.Commands (
   cmdAdd,
   cmdArchive,
   cmdList,
+  cmdListPriority,
   cmdMarkAsDone,
   runHodorCommand
   )
@@ -65,6 +66,7 @@ commands :: M.Map String HodorCommand
 commands = M.fromList [
   ("list", cmdList)
   , ("ls",   cmdList)
+  , ("lsp", cmdListPriority)
   , ("add",  cmdAdd)
   , ("do", cmdMarkAsDone)
   , ("archive", cmdArchive)

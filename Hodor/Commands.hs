@@ -11,6 +11,7 @@ import Data.Time (
   localDay,
   zonedTimeToLocalTime
   )
+import Data.Maybe (isJust)
 import GHC.Exts (sortWith)
 import Text.Printf (printf)
 import Text.Read (readMaybe)
@@ -34,6 +35,7 @@ import Hodor.Types (
   DoneResult(..),
   listItems,
   numItems,
+  priority
   )
 
 
@@ -74,6 +76,29 @@ cmdListPure todoFile =
   where formatOneTodo (i, t) = printf "%02d %s" i t
         sortTodo = sortWith snd
         getTodoLines = map formatOneTodo . sortTodo . map (second unparse) . listItems
+
+
+cmdListPriority :: HodorCommand
+cmdListPriority _ = do
+  -- ACTION: read file
+  todoFile <- fmap todoFilePath ask >>= readTodoFileEx
+  -- ACTION: display output
+  liftIO $ putStr $ cmdListPriorityPure todoFile
+
+
+-- XXX: There's a lot of common code between this & cmdListPure. Factor it out.
+-- Perhaps a generic command (list-with-filter)? Or a sortedListItems helper?
+cmdListPriorityPure :: TodoFile -> String
+cmdListPriorityPure todoFile =
+  let count = numItems todoFile
+      todoLines = getTodoLines todoFile
+      summary = appMessage $ printf "%d of %d items shown" (length todoLines) count in
+  unlines $ todoLines ++ ["--", summary]
+  -- XXX: NumberedTodoItem
+  where formatOneTodo (i, t) = printf "%02d %s" i t
+        sortTodo = sortWith snd
+        getTodoLines = map formatOneTodo . sortTodo . map (second unparse) . getPriorityItems . listItems
+        getPriorityItems = filter (isJust . priority . snd)
 
 
 cmdAdd :: HodorCommand
@@ -170,7 +195,6 @@ today = localDay `fmap` zonedTimeToLocalTime `fmap` getZonedTime
 
 -- XXX: Handle 'auto-archive' case
 -- XXX: Colorize
--- XXX: Priority list (lsp)
 -- XXX: Mark as undone
 -- XXX: Filter when listing
 -- XXX: Try to get the commands out of IO
