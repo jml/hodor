@@ -95,6 +95,27 @@ data DoneResult = Done Int TodoItem |
                   deriving (Show, Eq)
 
 
+--- XXX: Move to be with the other TodoFile functions
+doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
+doItem file day i =
+  case getItem file i of
+    Nothing -> tell (S.singleton (NoSuchTask i)) >> return file
+    Just todo ->
+      if isDone todo
+      then tell (S.singleton (AlreadyDone i todo)) >> return file
+      else
+        let newTodo = markAsDone todo day in
+        tell (S.singleton (Done i newTodo)) >> return (replace file (i - 1) newTodo)
+  where -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
+        replace todoFile ndx item =
+          todoFile { todoFileItemsV = S.update ndx item (todoFileItemsV todoFile) }
+
+
+--- XXX: Move to be with the other TodoFile functions
+doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
+doItems file day = second toList . runWriter . foldM (flip doItem day) file
+
+
 -- XXX: Move the Unparse TodoItem declaration together with the rest
 instance Unparse TodoItem where
   unparse item = concat $
@@ -164,22 +185,3 @@ archive file =
       (doneItems, todoItems) = S.partition isDone items
       newTodoFile = file { todoFileItemsV = todoItems }
   in (newTodoFile, toList doneItems)
-
-
-doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
-doItem file day i =
-  case getItem file i of
-    Nothing -> tell (S.singleton (NoSuchTask i)) >> return file
-    Just todo ->
-      if isDone todo
-      then tell (S.singleton (AlreadyDone i todo)) >> return file
-      else
-        let newTodo = markAsDone todo day in
-        tell (S.singleton (Done i newTodo)) >> return (replace file (i - 1) newTodo)
-  where -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
-        replace todoFile ndx item =
-          todoFile { todoFileItemsV = S.update ndx item (todoFileItemsV todoFile) }
-
-
-doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
-doItems file day = second toList . runWriter . foldM (flip doItem day) file
