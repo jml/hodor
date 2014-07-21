@@ -2,6 +2,7 @@
 
 module Hodor.CommandLine where
 
+import Control.Arrow (second)
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
@@ -24,16 +25,15 @@ import Text.Read ( readMaybe )
 import Hodor (
   TodoFile
   , TodoItem
-  , todoFileItems
   , unparse
   )
 import Hodor.File (expandUser)
-import Hodor.Functional (enumerate)
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
   archive
   , doItems
   , DoneResult(..)
+  , listItems
   , numItems
   )
 
@@ -130,13 +130,13 @@ cmdList _ = do
 
 cmdListPure :: TodoFile -> String
 cmdListPure todoFile =
-  let items = todoFileItems todoFile
-      count = length items
-      todoLines = map formatOneTodo $ sortTodo $ enumerate $ map unparse $ items
+  let count = numItems todoFile
+      todoLines = getTodoLines todoFile
       summary = appMessage $ printf "%d of %d items shown" count count in
   unlines $ todoLines ++ ["--", summary]
   where formatOneTodo (i, t) = printf "%02d %s" i t
         sortTodo = sortWith snd
+        getTodoLines = map formatOneTodo . sortTodo . map (second unparse) . listItems
 
 
 cmdAdd :: HodorCommand

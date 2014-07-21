@@ -184,6 +184,10 @@ todoFileItems :: TodoFile -> [TodoItem]
 todoFileItems = toList . todoFileItemsV
 
 
+listItems :: TodoFile -> [(Int, TodoItem)]
+listItems = zip [1..] . toList . todoFileItemsV
+
+
 -- TODO: UNTESTED: numItems
 numItems :: TodoFile -> Int
 numItems = S.length . todoFileItemsV

@@ -14,12 +14,12 @@ import Hodor.Types (
   dateCreated,
   description,
   doItems,
+  listItems,
   makeTodoFile,
   priority,
   projects,
   TodoFile,
   todoFileName,
-  todoFileItems,
   unparse,
   unsafeGetItem
   )
@@ -95,19 +95,19 @@ main = hspec $ do
       let input = ""
           output = parseTodoFile "test-todo" input
       it "has no items" $ do
-        shouldHave output todoFileItems []
+        shouldHave output listItems []
       it "has the given name" $ do
         shouldHave output todoFileName "test-todo"
     describe "blank lines" $ do
       it "are skipped" $ do
         let input = "\n\n"
             output = parseTodoFile "test-todo" input
-        shouldHave output todoFileItems []
+        shouldHave output listItems []
     describe "single line" $ do
       it "is parsed" $ do
         let input = "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home\n"
             output = parseTodoFile "test-todo" input
-        fmap todoFileItems output `shouldBe` fmap (\x -> [x]) (testParse todoTxtLine input)
+        fmap listItems output `shouldBe` fmap (\x -> [(1, x)]) (testParse todoTxtLine input)
 
   describe "mark as done" $ do
     let someDay = fromGregorian 1982 12 25
@@ -118,7 +118,7 @@ main = hspec $ do
       it "reports no such task for all given tasks" $ do
         snd (doItems emptyFile someDay [2, 3]) `shouldBe` [NoSuchTask 2, NoSuchTask 3]
       it "doesn't create new tasks" $ do
-        (todoFileItems $ fst (doItems emptyFile someDay [2, 3])) `shouldBe` []
+        (listItems $ fst (doItems emptyFile someDay [2, 3])) `shouldBe` []
 
     describe "with todos" $ do
       let sampleTodoText = unlines [
