@@ -6,7 +6,6 @@ import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwE
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Data.Foldable (forM_)
-import Data.List (partition)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
 import Data.Time (
