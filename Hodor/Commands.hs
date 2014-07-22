@@ -55,39 +55,28 @@ appMessage :: String -> String
 appMessage = printf "%s: %s" appName
 
 
--- XXX: NumberedTodoItem
--- Here we number items according to how they appear, but actually the number
--- is intrinsic to the item, and should probably be associated when parsed.
 cmdList :: HodorCommand
-cmdList _ = do
-  -- ACTION: read file
-  todoFile <- fmap todoFilePath ask >>= readTodoFileEx
-  -- ACTION: display output
-  liftIO $ putStr $ cmdListPure todoFile
-
-
-cmdListPure :: TodoFile -> String
-cmdListPure todoFile = showTodoList todoFile (listItems todoFile)
+cmdList _ = listItemsCommand (\_ -> True)
 
 
 cmdListPriority :: HodorCommand
-cmdListPriority _ = do
+cmdListPriority _ = listItemsCommand hasPriority
+
+
+listItemsCommand :: (TodoItem -> Bool) -> HodorM ()
+listItemsCommand p = do
   -- ACTION: read file
   todoFile <- fmap todoFilePath ask >>= readTodoFileEx
   -- ACTION: display output
-  liftIO $ putStr $ cmdListPriorityPure todoFile
+  liftIO $ putStr $ showTodoList todoFile (filterItems p todoFile)
 
 
--- XXX: There's a lot of common code between this & cmdListPure. Factor it out.
--- Perhaps a generic command (list-with-filter)? Or a sortedListItems helper?
-cmdListPriorityPure :: TodoFile -> String
-cmdListPriorityPure todoFile = showTodoList todoFile (filterItems hasPriority todoFile)
-
-
+-- XXX: NumberedTodoItem
 showTodoList :: TodoFile -> [(Int, TodoItem)] -> String
 showTodoList file items = unlines $ concat [formatLines items, ["--", getListSummary file items]]
 
 
+-- XXX: NumberedTodoItem
 formatLines :: [(Int, TodoItem)] -> [String]
 formatLines =
   map formatOneTodo . sortTodo . map (second unparse)
@@ -95,6 +84,7 @@ formatLines =
         sortTodo = sortWith snd
 
 
+-- XXX: NumberedTodoItem
 getListSummary :: TodoFile -> [(Int, TodoItem)] -> String
 getListSummary file items = appMessage $ printf "%d of %d items shown" (length items) (numItems file)
 
