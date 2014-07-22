@@ -57,6 +57,10 @@ description item = concatMap unparse (tokens item)
 isDone :: TodoItem -> Bool
 isDone = isJust . dateCompleted
 
+-- TODO: UNTESTED: hasPriority
+hasPriority :: TodoItem -> Bool
+hasPriority = isJust . priority
+
 -- XXX: How do I do post-conditions in Haskell?
 -- TODO: UNTESTED: markAsDone
 markAsDone :: TodoItem -> Day -> TodoItem
@@ -106,6 +110,12 @@ listItems = zip [1..] . toList . todoFileItemsV
 -- TODO: UNTESTED: numItems
 numItems :: TodoFile -> Int
 numItems = S.length . todoFileItemsV
+
+
+-- XXX: NumberedTodoItem
+-- TODO: UNTESTED: NumberedTodoItem
+filterItems :: (TodoItem -> Bool) -> TodoFile -> [(Int, TodoItem)]
+filterItems p = filter (p . snd) . listItems
 
 
 -- TODO: UNTESTED: getItem

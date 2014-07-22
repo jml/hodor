@@ -11,7 +11,6 @@ import Data.Time (
   localDay,
   zonedTimeToLocalTime
   )
-import Data.Maybe (isJust)
 import GHC.Exts (sortWith)
 import Text.Printf (printf)
 import Text.Read (readMaybe)
@@ -33,9 +32,10 @@ import Hodor.Types (
   archive,
   doItems,
   DoneResult(..),
+  hasPriority,
+  filterItems,
   listItems,
-  numItems,
-  priority
+  numItems
   )
 
 
@@ -67,15 +67,7 @@ cmdList _ = do
 
 
 cmdListPure :: TodoFile -> String
-cmdListPure todoFile =
-  let count = numItems todoFile
-      todoLines = getTodoLines todoFile
-      summary = appMessage $ printf "%d of %d items shown" count count in
-  unlines $ todoLines ++ ["--", summary]
-  -- XXX: NumberedTodoItem
-  where formatOneTodo (i, t) = printf "%02d %s" i t
-        sortTodo = sortWith snd
-        getTodoLines = map formatOneTodo . sortTodo . map (second unparse) . listItems
+cmdListPure todoFile = showTodoList todoFile (listItems todoFile)
 
 
 cmdListPriority :: HodorCommand
@@ -89,16 +81,22 @@ cmdListPriority _ = do
 -- XXX: There's a lot of common code between this & cmdListPure. Factor it out.
 -- Perhaps a generic command (list-with-filter)? Or a sortedListItems helper?
 cmdListPriorityPure :: TodoFile -> String
-cmdListPriorityPure todoFile =
-  let count = numItems todoFile
-      todoLines = getTodoLines todoFile
-      summary = appMessage $ printf "%d of %d items shown" (length todoLines) count in
-  unlines $ todoLines ++ ["--", summary]
-  -- XXX: NumberedTodoItem
+cmdListPriorityPure todoFile = showTodoList todoFile (filterItems hasPriority todoFile)
+
+
+showTodoList :: TodoFile -> [(Int, TodoItem)] -> String
+showTodoList file items = unlines $ concat [formatLines items, ["--", getListSummary file items]]
+
+
+formatLines :: [(Int, TodoItem)] -> [String]
+formatLines =
+  map formatOneTodo . sortTodo . map (second unparse)
   where formatOneTodo (i, t) = printf "%02d %s" i t
         sortTodo = sortWith snd
-        getTodoLines = map formatOneTodo . sortTodo . map (second unparse) . getPriorityItems . listItems
-        getPriorityItems = filter (isJust . priority . snd)
+
+
+getListSummary :: TodoFile -> [(Int, TodoItem)] -> String
+getListSummary file items = appMessage $ printf "%d of %d items shown" (length items) (numItems file)
 
 
 cmdAdd :: HodorCommand
