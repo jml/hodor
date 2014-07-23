@@ -42,7 +42,8 @@ import Hodor.Types (
   DoneResult(..),
   hasPriority,
   filterItems,
-  numItems
+  numItems,
+  undoItems
   )
 
 
@@ -140,8 +141,24 @@ cmdMarkAsDone args = do
     format (Done i t) = unlines [formatTodo i t,
                                  appMessage $ printf "%d marked as done." i]
     format (AlreadyDone i t) = unlines [formatTodo i t,
-                                        appMessage $ printf "%s: %d is already marked done." i]
-    format (NoSuchTask i) = appMessage $ printf "%s: No task %d\n" i
+                                        appMessage $ printf "%d is already marked done." i]
+    format (NoSuchTask i) = appMessage $ printf "No task %d\n" i
+
+
+cmdUndo :: HodorCommand
+cmdUndo args = do
+  items <- getItems args
+  todoFile <- loadTodoFile
+  let (newTodoFile, doneItems) = undoItems todoFile items
+  path <- fmap todoFilePath ask
+  liftIO $ replaceFile path $ unparse newTodoFile
+  forM_ doneItems (liftIO . putStr . format)
+  where
+    format (Undone i t) = unlines [formatTodo i t,
+                                   appMessage $ printf "%d no longer marked as done." i]
+    format (AlreadyNotDone i t) = unlines [formatTodo i t,
+                                           appMessage $ printf "%d was already not marked done." i]
+    format (NoSuchTask i) = appMessage $ printf "No task %d\n" i
 
 
 cmdListContexts :: HodorCommand

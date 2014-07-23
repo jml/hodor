@@ -19,6 +19,7 @@ import Hodor.Commands (
   cmdListPriority,
   cmdListProjects,
   cmdMarkAsDone,
+  cmdUndo,
   runHodorCommand
   )
 import Hodor.Config
@@ -76,6 +77,7 @@ commands = M.fromList [
   , ("listcon", cmdListContexts)
   , ("lsp", cmdListProjects)
   , ("lsprj", cmdListProjects)
+  , ("undo", cmdUndo)
   ]
 
 

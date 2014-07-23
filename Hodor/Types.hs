@@ -71,11 +71,17 @@ markAsDone item day | isDone item = item
                     | otherwise   = item { dateCompleted = Just day }
 
 
+markAsUndone :: TodoItem -> TodoItem
+markAsUndone item = item { dateCompleted = Nothing }
+
+
 -- XXX: Possibly make this a more generic 'event' data type
 -- XXX: NumberedTodoItem
 data DoneResult = Done Int TodoItem |
                   AlreadyDone Int TodoItem |
-                  NoSuchTask Int
+                  NoSuchTask Int |
+                  Undone Int TodoItem |
+                  AlreadyNotDone Int TodoItem
                   deriving (Show, Eq)
 
 
@@ -163,21 +169,49 @@ archive file =
 doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
 doItem file day i =
   case getItem file i of
-    Nothing -> tell (S.singleton (NoSuchTask i)) >> return file
+    Nothing -> do
+      tell (S.singleton (NoSuchTask i))
+      return file
     Just todo ->
       if isDone todo
-      then tell (S.singleton (AlreadyDone i todo)) >> return file
-      else
-        let newTodo = markAsDone todo day in
-        tell (S.singleton (Done i newTodo)) >> return (replace file (i - 1) newTodo)
-  where -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
-        replace todoFile ndx item =
-          todoFile { todoFileItemsV = S.update ndx item (todoFileItemsV todoFile) }
+      then do
+        tell (S.singleton (AlreadyDone i todo))
+        return file
+      else do
+        let newTodo = markAsDone todo day
+        tell (S.singleton (Done i newTodo))
+        return (replaceItem file i newTodo)
 
 
 doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
 doItems file day = second toList . runWriter . foldM (flip doItem day) file
 
+
+undoItem :: TodoFile -> Int -> Writer (S.Seq DoneResult) TodoFile
+undoItem file i =
+  case getItem file i of
+    Nothing -> do
+      tell (S.singleton (NoSuchTask i))
+      return file
+    Just todo ->
+      if not (isDone todo)
+      then do
+        tell (S.singleton (AlreadyNotDone i todo))
+        return file
+      else do
+        let newTodo = markAsUndone todo
+        tell (S.singleton (Undone i newTodo))
+        return (replaceItem file i newTodo)
+
+
+undoItems :: TodoFile -> [Int] -> (TodoFile, [DoneResult])
+undoItems file = second toList . runWriter . foldM undoItem file
+
+
+-- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
+replaceItem :: TodoFile -> Int -> TodoItem -> TodoFile
+replaceItem file i item =
+  file { todoFileItemsV = S.update (i - 1) item (todoFileItemsV file) }
 
 {- Turn todos back into strings. -}
 
