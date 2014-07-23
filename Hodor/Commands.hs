@@ -29,6 +29,7 @@ import Hodor.Config (
   doneFilePath
   )
 import Hodor.File (expandUser)
+import Hodor.Functional (andP)
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
   archive,
@@ -57,9 +58,11 @@ appMessage = printf "%s: %s" appName
 
 
 cmdList :: HodorCommand
-cmdList []      = listItemsCommand (const True)
-cmdList args    = listItemsCommand (\item -> (and (map ($ item) (map matcher args))))
-  where matcher re = isJust . matchRegex (mkRegex re) . unparse
+cmdList args    = listItemsCommand (andP matchers)
+  where
+    matcher re = isJust . matchRegex re . unparse
+    regexes = map mkRegex (filter (not . null) args)
+    matchers = map matcher regexes
 
 
 cmdListPriority :: HodorCommand
