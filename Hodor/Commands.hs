@@ -5,8 +5,7 @@ import Control.Monad (liftM)
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
-import Data.Foldable (concatMap, forM_)
-import Data.List (nub, sort)
+import Data.Foldable (forM_)
 import Data.Maybe (isJust, isNothing)
 import Data.Time (
   Day,
@@ -35,11 +34,10 @@ import Hodor.Functional (andP)
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
   allContexts,
-  allItems,
   allProjects,
   archive,
   doItems,
-  DoneResult(..),
+  TodoEvent(..),
   hasPriority,
   filterItems,
   numItems,

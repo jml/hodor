@@ -76,16 +76,13 @@ markAsUndone :: TodoItem -> TodoItem
 markAsUndone item = item { dateCompleted = Nothing }
 
 
--- XXX: Possibly make this a more generic 'event' data type
 -- XXX: NumberedTodoItem
-data DoneResult = Done Int TodoItem |
+data TodoEvent = Done Int TodoItem |
                   AlreadyDone Int TodoItem |
                   NoSuchTask Int |
                   Undone Int TodoItem |
                   AlreadyNotDone Int TodoItem
                   deriving (Show, Eq)
-
-
 
 
 -- XXX: Could make this a NamedList type class or something, implement
@@ -167,15 +164,15 @@ archive file =
   in (newTodoFile, toList doneItems)
 
 
-newtype TodoEvents a = TodoEvents { getWriter :: Writer (S.Seq DoneResult) a }
+newtype TodoEvents a = TodoEvents { getWriter :: Writer (S.Seq TodoEvent) a }
                        deriving (Monad)
 
 
-runEvents :: TodoEvents a -> (a, [DoneResult])
+runEvents :: TodoEvents a -> (a, [TodoEvent])
 runEvents = second toList . runWriter . getWriter
 
 
-logEvent :: DoneResult -> TodoEvents ()
+logEvent :: TodoEvent -> TodoEvents ()
 logEvent e = TodoEvents (tell (S.singleton e))
 
 
@@ -204,7 +201,7 @@ doItem file day i = do
         return (replaceItem file i newTodo)
 
 
-doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
+doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [TodoEvent])
 doItems file day = runEvents . foldM (flip doItem day) file
 
 
@@ -224,7 +221,7 @@ undoItem file i = do
         return (replaceItem file i newTodo)
 
 
-undoItems :: TodoFile -> [Int] -> (TodoFile, [DoneResult])
+undoItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
 undoItems file = runEvents . foldM undoItem file
 
 
