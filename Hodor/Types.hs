@@ -114,8 +114,6 @@ listItems :: TodoFile -> [(Int, TodoItem)]
 listItems = zip [1..] . toList . todoFileItemsV
 
 
--- XXX: I would like to define the type signature as a foldable, traversable
--- monad over TodoItem, rather than exposing that this is a sequence.
 allItems :: TodoFile -> S.Seq TodoItem
 allItems = todoFileItemsV
 

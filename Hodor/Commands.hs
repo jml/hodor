@@ -52,7 +52,6 @@ import Hodor.Types (
 newtype HodorM a = HM { unHM :: ReaderT Config (ErrorT String IO) a }
                    deriving (Monad, MonadIO, MonadReader Config, MonadError String)
 
--- XXX: Try to wrap this up in a newtype, for greater encapsulation
 type HodorCommand = [String] -> HodorM ()
 
 runHodorCommand :: HodorCommand -> Config -> [String] -> IO (Either String ())
@@ -229,7 +228,6 @@ today = localDay `fmap` zonedTimeToLocalTime `fmap` getZonedTime
 
 -- XXX: Handle 'auto-archive' case
 -- XXX: Colorize
--- XXX: Mark as undone
 -- XXX: Try to get the commands out of IO
 --      - they could take Todo, Done and return new Todo, Done
 --        - that would avoid cheap writes for 'add' (which currently just append)
