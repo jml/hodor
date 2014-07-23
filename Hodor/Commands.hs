@@ -1,9 +1,11 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Hodor.Commands where
 
 import Control.Arrow (second)
 import Control.Monad (liftM)
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
-import Control.Monad.Reader (ask, ReaderT, runReaderT)
+import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Data.Foldable (forM_)
 import Data.Maybe (isJust, isNothing)
@@ -47,12 +49,14 @@ import Hodor.Types (
 
 -- XXX: Revisit error type (maybe we should have something more abstracted
 -- than String)
-type HodorM = ReaderT Config (ErrorT String IO)
+newtype HodorM a = HM { unHM :: ReaderT Config (ErrorT String IO) a }
+                   deriving (Monad, MonadIO, MonadReader Config, MonadError String)
+
 -- XXX: Try to wrap this up in a newtype, for greater encapsulation
 type HodorCommand = [String] -> HodorM ()
 
 runHodorCommand :: HodorCommand -> Config -> [String] -> IO (Either String ())
-runHodorCommand cmd cfg rest = runErrorT $ runReaderT (cmd rest) cfg
+runHodorCommand cmd cfg rest = runErrorT $ runReaderT (unHM (cmd rest)) cfg
 
 appName :: String
 appName = "HODOR"
@@ -89,15 +93,15 @@ listItemsCommand p = do
 cmdAdd :: HodorCommand
 cmdAdd args = do
   -- ACTION: get date if we need it
-  addDate <- fmap dateOnAdd ask
+  addDate <- liftM dateOnAdd ask
   day <- case addDate of
-    True -> fmap Just (liftIO today)
+    True -> liftM Just (liftIO today)
     False -> return Nothing
   -- ACTION: read file
   todoFile <- loadTodoFile
   let (item, output) = cmdAddPure todoFile day args
   -- ACTION: append item
-  todoFileName <- fmap todoFilePath ask
+  todoFileName <- liftM todoFilePath ask
   liftIO $ appendFile todoFileName $ item
   -- ACTION: display output
   liftIO $ putStr $ output
@@ -118,8 +122,8 @@ cmdArchive _ = do
   todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = archive todoFile
       doneString = unlines . map unparse $ doneItems
-  todoPath <- fmap todoFilePath ask
-  donePath <- fmap doneFilePath ask
+  todoPath <- liftM todoFilePath ask
+  donePath <- liftM doneFilePath ask
   liftIO $ appendFile donePath doneString
   liftIO $ replaceFile todoPath (unparse newTodoFile)
   liftIO $ putStr doneString
@@ -132,7 +136,7 @@ cmdMarkAsDone args = do
   day <- liftIO today
   todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = doItems todoFile day items
-  path <- fmap todoFilePath ask
+  path <- liftM todoFilePath ask
   liftIO $ replaceFile path $ unparse newTodoFile
   forM_ doneItems (liftIO . putStr . format)
   where
@@ -148,7 +152,7 @@ cmdUndo args = do
   items <- getItems args
   todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = undoItems todoFile items
-  path <- fmap todoFilePath ask
+  path <- liftM todoFilePath ask
   liftIO $ replaceFile path $ unparse newTodoFile
   forM_ doneItems (liftIO . putStr . format)
   where
@@ -210,7 +214,7 @@ replaceFile = writeFile
 
 loadTodoFile :: HodorM TodoFile
 loadTodoFile = do
-  path <- fmap todoFilePath ask
+  path <- liftM todoFilePath ask
   expanded <- liftIO $ expandUser path
   contents <- liftIO $ readFile expanded
   case parseTodoFile expanded contents of
