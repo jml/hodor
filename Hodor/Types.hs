@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Hodor.Types where
 
@@ -166,7 +167,17 @@ archive file =
   in (newTodoFile, toList doneItems)
 
 
-doItem :: TodoFile -> Day -> Int -> Writer (S.Seq DoneResult) TodoFile
+newtype TodoEvents a = TodoEvents { getWriter :: Writer (S.Seq DoneResult) a }
+                       deriving (Monad, MonadWriter (S.Seq DoneResult))
+
+-- XXX: Is it best to derive MonadWriter here, or should we instead somehow
+-- make a manual instance that has 'tell'?
+
+runEvents :: TodoEvents a -> (a, [DoneResult])
+runEvents = second toList . runWriter . getWriter
+
+
+doItem :: TodoFile -> Day -> Int -> TodoEvents TodoFile
 doItem file day i =
   case getItem file i of
     Nothing -> do
@@ -184,10 +195,10 @@ doItem file day i =
 
 
 doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [DoneResult])
-doItems file day = second toList . runWriter . foldM (flip doItem day) file
+doItems file day = runEvents . foldM (flip doItem day) file
 
 
-undoItem :: TodoFile -> Int -> Writer (S.Seq DoneResult) TodoFile
+undoItem :: TodoFile -> Int -> TodoEvents TodoFile
 undoItem file i =
   case getItem file i of
     Nothing -> do
@@ -205,7 +216,7 @@ undoItem file i =
 
 
 undoItems :: TodoFile -> [Int] -> (TodoFile, [DoneResult])
-undoItems file = second toList . runWriter . foldM undoItem file
+undoItems file = runEvents . foldM undoItem file
 
 
 -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
