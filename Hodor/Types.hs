@@ -2,9 +2,12 @@
 
 module Hodor.Types where
 
+import Prelude hiding (concatMap)
+
 import Control.Arrow (second)
 import Control.Monad.Writer
-import Data.Foldable (toList)
+import Data.Foldable (concatMap, toList)
+import Data.List (nub, sort)
 import Data.Maybe (isJust)
 import Data.Time (Day, showGregorian)
 import qualified Data.Sequence as S
@@ -111,6 +114,14 @@ listItems = zip [1..] . toList . todoFileItemsV
 -- monad over TodoItem, rather than exposing that this is a sequence.
 allItems :: TodoFile -> S.Seq TodoItem
 allItems = todoFileItemsV
+
+
+allContexts :: TodoFile -> [Context]
+allContexts = nub . sort . concatMap contexts . todoFileItemsV
+
+
+allProjects :: TodoFile -> [Project]
+allProjects = nub . sort . concatMap projects . todoFileItemsV
 
 
 -- TODO: UNTESTED: numItems

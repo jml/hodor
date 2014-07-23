@@ -34,15 +34,15 @@ import Hodor.File (expandUser)
 import Hodor.Functional (andP)
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
+  allContexts,
   allItems,
-  contexts,
+  allProjects,
   archive,
   doItems,
   DoneResult(..),
   hasPriority,
   filterItems,
-  numItems,
-  projects
+  numItems
   )
 
 
@@ -146,15 +146,12 @@ cmdMarkAsDone args = do
 
 cmdListContexts :: HodorCommand
 cmdListContexts _ = do
-  liftM getAllContexts loadTodoFile >>= mapM_ (liftIO . putStrLn . show)
-  where getAllContexts = nub . sort . Data.Foldable.concatMap contexts . allItems
+  liftM allContexts loadTodoFile >>= mapM_ (liftIO . putStrLn . show)
 
 
 cmdListProjects :: HodorCommand
 cmdListProjects _ = do
-  liftM getAllProjects loadTodoFile >>= mapM_ (liftIO . putStrLn . show)
-  where getAllProjects = nub . sort . Data.Foldable.concatMap projects . allItems
-
+  liftM allProjects loadTodoFile >>= mapM_ (liftIO . putStrLn . show)
 
 
 {- Utility functions follow -}
