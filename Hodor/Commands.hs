@@ -57,9 +57,9 @@ appMessage = printf "%s: %s" appName
 
 
 cmdList :: HodorCommand
-cmdList args = listItemsCommand (matcher (unwords args))
-  where matcher [] = const True
-        matcher re = isJust . matchRegex (mkRegex re) . unparse
+cmdList []      = listItemsCommand (const True)
+cmdList args    = listItemsCommand (\item -> (and (map ($ item) (map matcher args))))
+  where matcher re = isJust . matchRegex (mkRegex re) . unparse
 
 
 cmdListPriority :: HodorCommand
