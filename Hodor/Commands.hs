@@ -5,7 +5,7 @@ import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwE
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Data.Foldable (forM_)
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, isNothing)
 import Data.Time (
   Day,
   getZonedTime,
@@ -60,8 +60,9 @@ appMessage = printf "%s: %s" appName
 cmdList :: HodorCommand
 cmdList args =  listItemsCommand (andP matchers)
   where
-    -- XXX: Handle '-' prefix negating regex
-    matcher arg = isJust . matchRegex (mkRegex arg) . unparse
+    matcher ('-':arg) = isNothing . matchTodoWithRegex arg
+    matcher arg = isJust . matchTodoWithRegex arg
+    matchTodoWithRegex arg = matchRegex (mkRegex arg) . unparse
     -- XXX: I don't know whether it helps (i.e. improves performance) if we
     -- run mkRegex over the list first. It's possible that this means we only
     -- compile every regex once, whereas otherwise we'd compile them once per
