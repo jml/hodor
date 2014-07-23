@@ -5,6 +5,7 @@ import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwE
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Data.Foldable (forM_)
+import Data.Maybe (isJust)
 import Data.Time (
   Day,
   getZonedTime,
@@ -14,6 +15,7 @@ import Data.Time (
 import GHC.Exts (sortWith)
 import Text.Printf (printf)
 import Text.Read (readMaybe)
+import Text.Regex
 
 import Hodor (
   TodoFile,
@@ -34,7 +36,6 @@ import Hodor.Types (
   DoneResult(..),
   hasPriority,
   filterItems,
-  listItems,
   numItems
   )
 
@@ -56,7 +57,9 @@ appMessage = printf "%s: %s" appName
 
 
 cmdList :: HodorCommand
-cmdList _ = listItemsCommand (\_ -> True)
+cmdList args = listItemsCommand (matcher (unwords args))
+  where matcher [] = const True
+        matcher re = isJust . matchRegex (mkRegex re) . unparse
 
 
 cmdListPriority :: HodorCommand
