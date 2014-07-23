@@ -40,7 +40,7 @@ dFile = DoneFile  . fromMaybe defaultDoneFile
 
 hodorOpts :: (Error e, MonadError e m) => [String] -> m ([Flag], [String])
 hodorOpts argv =
-  case getOpt Permute options argv of
+  case getOpt RequireOrder options argv of
     (o,n,[]  ) -> return (o,n)
     (_,_,errs) -> throwError (usageError errs)
 
