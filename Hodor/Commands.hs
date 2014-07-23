@@ -77,7 +77,7 @@ cmdListPriority _ = listItemsCommand hasPriority
 listItemsCommand :: (TodoItem -> Bool) -> HodorM ()
 listItemsCommand p = do
   -- ACTION: read file
-  todoFile <- fmap todoFilePath ask >>= readTodoFileEx
+  todoFile <- loadTodoFile
   -- ACTION: display output
   liftIO $ putStr $ showTodoList todoFile (filterItems p todoFile)
 
@@ -90,7 +90,7 @@ cmdAdd args = do
     True -> fmap Just (liftIO today)
     False -> return Nothing
   -- ACTION: read file
-  todoFile <- fmap todoFilePath ask >>= readTodoFileEx
+  todoFile <- loadTodoFile
   let (item, output) = cmdAddPure todoFile day args
   -- ACTION: append item
   todoFileName <- fmap todoFilePath ask
@@ -111,10 +111,10 @@ cmdAddPure todoFile Nothing args =
 
 cmdArchive :: HodorCommand
 cmdArchive _ = do
-  todoPath <- fmap todoFilePath ask
-  todoFile <- readTodoFileEx todoPath
+  todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = archive todoFile
       doneString = unlines . map unparse $ doneItems
+  todoPath <- fmap todoFilePath ask
   donePath <- fmap doneFilePath ask
   liftIO $ appendFile donePath doneString
   liftIO $ replaceFile todoPath (unparse newTodoFile)
@@ -126,9 +126,9 @@ cmdMarkAsDone :: HodorCommand
 cmdMarkAsDone args = do
   items <- getItems args
   day <- liftIO today
-  path <- fmap todoFilePath ask
-  todoFile <- readTodoFileEx path
+  todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = doItems todoFile day items
+  path <- fmap todoFilePath ask
   liftIO $ replaceFile path $ unparse newTodoFile
   forM_ doneItems (liftIO . putStr . format)
   where
@@ -178,8 +178,9 @@ replaceFile :: FilePath -> String -> IO ()
 replaceFile = writeFile
 
 
-readTodoFileEx :: (Error e, MonadIO m, MonadError e m) => FilePath -> m TodoFile
-readTodoFileEx path = do
+loadTodoFile :: HodorM TodoFile
+loadTodoFile = do
+  path <- fmap todoFilePath ask
   expanded <- liftIO $ expandUser path
   contents <- liftIO $ readFile expanded
   case parseTodoFile expanded contents of
@@ -194,7 +195,6 @@ today = localDay `fmap` zonedTimeToLocalTime `fmap` getZonedTime
 -- XXX: Handle 'auto-archive' case
 -- XXX: Colorize
 -- XXX: Mark as undone
--- XXX: Filter when listing
 -- XXX: Try to get the commands out of IO
 --      - they could take Todo, Done and return new Todo, Done
 --        - that would avoid cheap writes for 'add' (which currently just append)
