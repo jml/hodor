@@ -82,24 +82,6 @@ listItemsCommand p = do
   liftIO $ putStr $ showTodoList todoFile (filterItems p todoFile)
 
 
--- XXX: NumberedTodoItem
-showTodoList :: TodoFile -> [(Int, TodoItem)] -> String
-showTodoList file items = unlines $ concat [formatLines items, ["--", getListSummary file items]]
-
-
--- XXX: NumberedTodoItem
-formatLines :: [(Int, TodoItem)] -> [String]
-formatLines =
-  map formatOneTodo . sortTodo . map (second unparse)
-  where formatOneTodo (i, t) = printf "%02d %s" i t
-        sortTodo = sortWith snd
-
-
--- XXX: NumberedTodoItem
-getListSummary :: TodoFile -> [(Int, TodoItem)] -> String
-getListSummary file items = appMessage $ printf "%d of %d items shown" (length items) (numItems file)
-
-
 cmdAdd :: HodorCommand
 cmdAdd args = do
   -- ACTION: get date if we need it
@@ -158,6 +140,23 @@ cmdMarkAsDone args = do
 
 
 {- Utility functions follow -}
+
+-- XXX: NumberedTodoItem
+showTodoList :: TodoFile -> [(Int, TodoItem)] -> String
+showTodoList file items = unlines $ concat [formatLines items, ["--", getListSummary file items]]
+
+
+-- XXX: NumberedTodoItem
+formatLines :: [(Int, TodoItem)] -> [String]
+formatLines =
+  map formatOneTodo . sortWith snd . map (second unparse)
+  where formatOneTodo (i, t) = printf "%02d %s" i t
+
+
+-- XXX: NumberedTodoItem
+getListSummary :: TodoFile -> [(Int, TodoItem)] -> String
+getListSummary file items = appMessage $ printf "%d of %d items shown" (length items) (numItems file)
+
 
 -- XXX: NumberedTodoItem
 formatTodo :: Int -> TodoItem -> String
