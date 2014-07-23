@@ -15,7 +15,9 @@ import Hodor.Commands (
   cmdAdd,
   cmdArchive,
   cmdList,
+  cmdListContexts,
   cmdListPriority,
+  cmdListProjects,
   cmdMarkAsDone,
   runHodorCommand
   )
@@ -70,6 +72,8 @@ commands = M.fromList [
   , ("add",  cmdAdd)
   , ("do", cmdMarkAsDone)
   , ("archive", cmdArchive)
+  , ("lsc", cmdListContexts)
+  , ("lsp", cmdListProjects)
   ]
 
 

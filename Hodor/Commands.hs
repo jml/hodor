@@ -1,10 +1,12 @@
 module Hodor.Commands where
 
 import Control.Arrow (second)
+import Control.Monad (liftM)
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
-import Data.Foldable (forM_)
+import Data.Foldable (concatMap, forM_)
+import Data.List (nub, sort)
 import Data.Maybe (isJust, isNothing)
 import Data.Time (
   Day,
@@ -32,12 +34,15 @@ import Hodor.File (expandUser)
 import Hodor.Functional (andP)
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
+  allItems,
+  contexts,
   archive,
   doItems,
   DoneResult(..),
   hasPriority,
   filterItems,
-  numItems
+  numItems,
+  projects
   )
 
 
@@ -137,6 +142,19 @@ cmdMarkAsDone args = do
     format (AlreadyDone i t) = unlines [formatTodo i t,
                                         appMessage $ printf "%s: %d is already marked done." i]
     format (NoSuchTask i) = appMessage $ printf "%s: No task %d\n" i
+
+
+cmdListContexts :: HodorCommand
+cmdListContexts _ = do
+  liftM getAllContexts loadTodoFile >>= mapM_ (liftIO . putStrLn . show)
+  where getAllContexts = nub . sort . Data.Foldable.concatMap contexts . allItems
+
+
+cmdListProjects :: HodorCommand
+cmdListProjects _ = do
+  liftM getAllProjects loadTodoFile >>= mapM_ (liftIO . putStrLn . show)
+  where getAllProjects = nub . sort . Data.Foldable.concatMap projects . allItems
+
 
 
 {- Utility functions follow -}
