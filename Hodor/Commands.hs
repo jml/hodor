@@ -58,6 +58,7 @@ type HodorCommand = [String] -> HodorM ()
 runHodorCommand :: HodorCommand -> Config -> [String] -> IO (Either String ())
 runHodorCommand cmd cfg rest = runErrorT $ runReaderT (unHM (cmd rest)) cfg
 
+
 appName :: String
 appName = "HODOR"
 
