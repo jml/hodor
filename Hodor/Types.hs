@@ -168,29 +168,39 @@ archive file =
 
 
 newtype TodoEvents a = TodoEvents { getWriter :: Writer (S.Seq DoneResult) a }
-                       deriving (Monad, MonadWriter (S.Seq DoneResult))
+                       deriving (Monad)
 
--- XXX: Is it best to derive MonadWriter here, or should we instead somehow
--- make a manual instance that has 'tell'?
 
 runEvents :: TodoEvents a -> (a, [DoneResult])
 runEvents = second toList . runWriter . getWriter
 
 
-doItem :: TodoFile -> Day -> Int -> TodoEvents TodoFile
-doItem file day i =
+logEvent :: DoneResult -> TodoEvents ()
+logEvent e = TodoEvents (tell (S.singleton e))
+
+
+_getItem :: TodoFile -> Int -> TodoEvents (Maybe TodoItem)
+_getItem file i = do
   case getItem file i of
     Nothing -> do
-      tell (S.singleton (NoSuchTask i))
-      return file
+      logEvent $ NoSuchTask i
+      return Nothing
+    Just x -> return (Just x)
+
+
+doItem :: TodoFile -> Day -> Int -> TodoEvents TodoFile
+doItem file day i = do
+  item <- _getItem file i
+  case item of
+    Nothing -> return file
     Just todo ->
       if isDone todo
       then do
-        tell (S.singleton (AlreadyDone i todo))
+        logEvent $ AlreadyDone i todo
         return file
       else do
         let newTodo = markAsDone todo day
-        tell (S.singleton (Done i newTodo))
+        logEvent $ Done i newTodo
         return (replaceItem file i newTodo)
 
 
@@ -199,19 +209,18 @@ doItems file day = runEvents . foldM (flip doItem day) file
 
 
 undoItem :: TodoFile -> Int -> TodoEvents TodoFile
-undoItem file i =
-  case getItem file i of
-    Nothing -> do
-      tell (S.singleton (NoSuchTask i))
-      return file
+undoItem file i = do
+  item <- _getItem file i
+  case item of
+    Nothing -> return file
     Just todo ->
       if not (isDone todo)
       then do
-        tell (S.singleton (AlreadyNotDone i todo))
+        logEvent $ AlreadyNotDone i todo
         return file
       else do
         let newTodo = markAsUndone todo
-        tell (S.singleton (Undone i newTodo))
+        logEvent $ Undone i newTodo
         return (replaceItem file i newTodo)
 
 
