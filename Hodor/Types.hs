@@ -186,6 +186,10 @@ logEvent :: TodoEvent -> TodoEvents ()
 logEvent e = TodoEvents (tell (S.singleton e))
 
 
+event :: (a, TodoEvent) -> TodoEvents a
+event (a, w) = TodoEvents $ writer (a, S.singleton w)
+
+
 _getItem :: TodoFile -> Int -> TodoEvents (Maybe TodoItem)
 _getItem file i = do
   case getItem file i of
@@ -206,15 +210,11 @@ _adjustItem f file i = do
 
 
 _doItem :: Day -> Int -> TodoItem -> TodoEvents TodoItem
-_doItem day i todo =
+_doItem day i todo = event $
   if isDone todo
-  then do
-    logEvent $ AlreadyDone i todo
-    return todo
-  else do
-    let newTodo = markAsDone todo day
-    logEvent $ Done i newTodo
-    return newTodo
+  then (todo, AlreadyDone i todo)
+  else (newTodo, Done i newTodo)
+  where newTodo = markAsDone todo day
 
 
 doItem :: TodoFile -> Day -> Int -> TodoEvents TodoFile
@@ -226,15 +226,11 @@ doItems file day = runEvents . foldM (flip doItem day) file
 
 
 _undoItem :: Int -> TodoItem -> TodoEvents TodoItem
-_undoItem i todo =
+_undoItem i todo = event $
   if not (isDone todo)
-  then do
-    logEvent $ AlreadyNotDone i todo
-    return todo
-  else do
-    let newTodo = markAsUndone todo
-    logEvent $ Undone i newTodo
-    return newTodo
+  then (todo, (AlreadyNotDone i todo))
+  else (newTodo, Undone i newTodo)
+  where newTodo = markAsUndone todo
 
 
 undoItem :: TodoFile -> Int -> TodoEvents TodoFile
