@@ -3,7 +3,7 @@
 module Hodor.CommandLine where
 
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
-import Control.Monad.Trans (lift)
+import Control.Monad.Trans (liftIO)
 import qualified Data.Map as M
 import Data.Maybe ( fromMaybe )
 import System.Console.GetOpt
@@ -95,13 +95,20 @@ getCommand (name:rest) =
 getCommand [] = return (defaultCommand, [])
 
 
+-- XXX: There *must* be some other way to do this.
+eitherToError :: (Error e, MonadError e m) => Either e a -> m a
+eitherToError (Right x) = return x
+eitherToError (Left x)  = throwError x
+
+
 main :: IO ()
 main = do
   argv <- getArgs
   result <- runErrorT $ do
     (opts, args) <- hodorOpts argv
     (cmd, rest) <- getCommand args
-    lift $ runHodorCommand cmd (getConfiguration opts) rest
+    r <- liftIO $ runHodorCommand cmd (getConfiguration opts) rest
+    eitherToError r
   case result of
     Left e -> (ioError . userError) e
     Right _ -> return ()
