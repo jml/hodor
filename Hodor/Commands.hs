@@ -87,17 +87,9 @@ listItemsCommand p = do
 
 cmdAdd :: HodorCommand
 cmdAdd args = do
-  -- ACTION: get date if we need it
-  addDate <- liftM dateOnAdd ask
-  day <- case addDate of
-    True -> liftM Just (liftIO today)
-    False -> return Nothing
-  -- ACTION: read file
-  todoFile <- loadTodoFile
-  let (item, output) = cmdAddPure todoFile day args
+  (item, output) <- liftM cmdAddPure loadTodoFile `ap` getDateAdded `ap` (return args)
   -- ACTION: append item
-  todoFileName <- liftM todoFilePath ask
-  liftIO $ appendFile todoFileName $ item
+  appendTodoItem item
   -- ACTION: display output
   liftIO $ putStr $ output
 
@@ -220,8 +212,22 @@ replaceTodoFile newTodoFile = do
   liftIO $ replaceFile path $ unparse newTodoFile
 
 
+appendTodoItem :: String -> HodorM ()
+appendTodoItem item = do
+  todoFileName <- liftM todoFilePath ask
+  liftIO $ appendFile todoFileName $ item
+
+
 reportEvents :: [TodoEvent] -> HodorM ()
 reportEvents = mapM_ (liftIO . putStr . formatEvent)
+
+
+getDateAdded :: HodorM (Maybe Day)
+getDateAdded = do
+  addDate <- liftM dateOnAdd ask
+  case addDate of
+    True -> liftM Just (liftIO today)
+    False -> return Nothing
 
 
 today :: IO Day
