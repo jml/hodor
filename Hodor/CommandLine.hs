@@ -75,7 +75,6 @@ commands = M.fromList [
   , ("archive", cmdArchive)
   , ("lsc", cmdListContexts)
   , ("listcon", cmdListContexts)
-  , ("lsp", cmdListProjects)
   , ("lsprj", cmdListProjects)
   , ("undo", cmdUndo)
   ]

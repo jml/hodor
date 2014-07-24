@@ -7,7 +7,6 @@ import Text.Parsec (parse)
 import Hodor.Functional (onLeft)
 import Hodor.Types (
   Context(Context),
-  DoneResult(..),
   Project(Project),
   contexts,
   dateCompleted,
