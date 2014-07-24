@@ -38,6 +38,7 @@ import Hodor.Types (
   allProjects,
   archive,
   doItems,
+  TaskAction(..),
   TodoEvent(..),
   hasPriority,
   filterItems,
@@ -177,27 +178,15 @@ formatTodo i t = printf "%02d %s" i (unparse t)
 
 
 formatEvent :: TodoEvent -> String
-formatEvent x@(NoSuchTask _) = appMessage $ formatEvent' x
-formatEvent x@(Done i t) =
-  unlines [formatTodo i t,
-           appMessage $ formatEvent' x]
-formatEvent x@(AlreadyDone i t) =
-  unlines [formatTodo i t,
-           appMessage $ formatEvent' x]
-formatEvent x@(Undone i t) =
-  unlines [formatTodo i t,
-           appMessage $ formatEvent' x]
-formatEvent x@(AlreadyNotDone i t) =
-  unlines [formatTodo i t,
-           appMessage $ formatEvent' x]
+formatEvent (NoSuchTask i) = appMessage $ printf "No task %d\n" i
+formatEvent (TaskChanged i t e) =
+  unlines [formatTodo i t, appMessage $ formatEvent' e i t]
 
-
-formatEvent' :: TodoEvent -> String
-formatEvent' (Done i _) = printf "%d marked as done." i
-formatEvent' (AlreadyDone i _) = printf "%d is already marked done." i
-formatEvent' (NoSuchTask i) = printf "No task %d\n" i
-formatEvent' (Undone i _) = printf "%d no longer marked as done." i
-formatEvent' (AlreadyNotDone i _) = printf "%d was already not marked done." i
+formatEvent' :: TaskAction -> Int -> TodoItem -> String
+formatEvent' Done i _ = printf "%d marked as done." i
+formatEvent' AlreadyDone i _ = printf "%d is already marked done." i
+formatEvent' Undone i _ = printf "%d no longer marked as done." i
+formatEvent' AlreadyNotDone i _ = printf "%d was already not marked done." i
 
 
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]

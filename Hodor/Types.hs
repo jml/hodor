@@ -97,13 +97,18 @@ prioritize item p = item { priority = p }
 -- XXX: NumberedTodoItem
 data TodoEvent =
   NoSuchTask Int |
-  Done Int TodoItem |
-  AlreadyDone Int TodoItem |
-  Undone Int TodoItem |
-  AlreadyNotDone Int TodoItem |
-  Prioritized Int TodoItem |
-  AlreadyPrioritized Int TodoItem |
-  ChangedPriority Int TodoItem Priority
+  TaskChanged Int TodoItem TaskAction
+  deriving (Show, Eq)
+
+
+data TaskAction =
+  Done |
+  AlreadyDone |
+  Undone |
+  AlreadyNotDone |
+  Prioritized |
+  AlreadyPrioritized |
+  ChangedPriority Priority
   deriving (Show, Eq)
 
 
@@ -226,8 +231,8 @@ _adjustItems = foldM . _adjustItem
 _doItem :: Day -> Int -> TodoItem -> TodoEvents TodoItem
 _doItem day i todo = event $
   if isDone todo
-  then (todo, AlreadyDone i todo)
-  else (newTodo, Done i newTodo)
+  then (todo, TaskChanged i todo AlreadyDone)
+  else (newTodo, TaskChanged i newTodo Done)
   where newTodo = markAsDone todo day
 
 
@@ -238,8 +243,8 @@ doItems file day = runEvents . _adjustItems (_doItem day) file
 _undoItem :: Int -> TodoItem -> TodoEvents TodoItem
 _undoItem i todo = event $
   if not (isDone todo)
-  then (todo, (AlreadyNotDone i todo))
-  else (newTodo, Undone i newTodo)
+  then (todo, TaskChanged i todo AlreadyNotDone)
+  else (newTodo, TaskChanged i newTodo Undone)
   where newTodo = markAsUndone todo
 
 
@@ -250,10 +255,10 @@ undoItems file = runEvents . _adjustItems _undoItem file
 _prioritize :: Priority -> Int -> TodoItem -> TodoEvents TodoItem
 _prioritize pri@(Pri _) i todo = event $
   case (priority todo) of
-    NoPri -> (prioritize todo pri, Prioritized i todo)
+    NoPri -> (prioritize todo pri, TaskChanged i todo Prioritized)
     old   -> if (pri == old)
-             then (todo, AlreadyPrioritized i todo)
-             else (prioritize todo pri, ChangedPriority i todo old)
+             then (todo, TaskChanged i todo AlreadyPrioritized)
+             else (prioritize todo pri, TaskChanged i todo (ChangedPriority old))
 _prioritize _ _ _ = error "Do not support deprioritization"
 
 

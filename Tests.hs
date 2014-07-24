@@ -19,6 +19,7 @@ import Hodor.Types (
   noPriority,
   priority,
   projects,
+  TaskAction(..),
   TodoEvent(..),
   TodoFile,
   todoFileName,
@@ -134,7 +135,7 @@ main = hspec $ do
         let index = 2
             originalItem = unsafeGetItem sampleTodo index
             (_, events) = doItems sampleTodo someDay [index]
-        events `shouldBe` [Done index originalItem { dateCompleted = Just someDay } ]
+        events `shouldBe` [TaskChanged index originalItem { dateCompleted = Just someDay } Done]
       it "marks the item as done" $ do
         let index = 2
             originalItem = unsafeGetItem sampleTodo index
