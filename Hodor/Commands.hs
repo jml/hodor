@@ -177,19 +177,27 @@ formatTodo i t = printf "%02d %s" i (unparse t)
 
 
 formatEvent :: TodoEvent -> String
-formatEvent (Done i t) =
+formatEvent x@(NoSuchTask _) = appMessage $ formatEvent' x
+formatEvent x@(Done i t) =
   unlines [formatTodo i t,
-           appMessage $ printf "%d marked as done." i]
-formatEvent (AlreadyDone i t) =
+           appMessage $ formatEvent' x]
+formatEvent x@(AlreadyDone i t) =
   unlines [formatTodo i t,
-           appMessage $ printf "%d is already marked done." i]
-formatEvent (NoSuchTask i) = appMessage $ printf "No task %d\n" i
-formatEvent (Undone i t) =
+           appMessage $ formatEvent' x]
+formatEvent x@(Undone i t) =
   unlines [formatTodo i t,
-           appMessage $ printf "%d no longer marked as done." i]
-formatEvent (AlreadyNotDone i t) =
+           appMessage $ formatEvent' x]
+formatEvent x@(AlreadyNotDone i t) =
   unlines [formatTodo i t,
-           appMessage $ printf "%d was already not marked done." i]
+           appMessage $ formatEvent' x]
+
+
+formatEvent' :: TodoEvent -> String
+formatEvent' (Done i _) = printf "%d marked as done." i
+formatEvent' (AlreadyDone i _) = printf "%d is already marked done." i
+formatEvent' (NoSuchTask i) = printf "No task %d\n" i
+formatEvent' (Undone i _) = printf "%d no longer marked as done." i
+formatEvent' (AlreadyNotDone i _) = printf "%d was already not marked done." i
 
 
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]
