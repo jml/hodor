@@ -41,7 +41,9 @@ import Hodor.Types (
   TodoEvent(..),
   hasPriority,
   filterItems,
+  makePriority,
   numItems,
+  Priority,
   undoItems
   )
 
@@ -131,6 +133,14 @@ cmdUndo args = do
   reportEvents doneItems
 
 
+cmdPrioritize :: HodorCommand
+cmdPrioritize (i:p:[]) = do
+  item <- getItem i
+  pri <- getPriority p
+  return ()
+cmdPrioritize _        = throwError $ strMsg "Expect ITEM# PRIORITY"
+
+
 cmdListContexts :: HodorCommand
 cmdListContexts _ = do
   liftM allContexts loadTodoFile >>= mapM_ (liftIO . putStrLn . show)
@@ -183,11 +193,21 @@ formatEvent (AlreadyNotDone i t) =
 
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]
 getItems [] = throwError $ strMsg "No items specified"
-getItems xs =
-  mapM (\x ->
-         case readMaybe x of
-           Just i -> return i
-           Nothing -> throwError $ strMsg $ "Invalid number: " ++ x) xs
+getItems xs = mapM getItem xs
+
+
+getItem :: (Error e, MonadError e m) => String -> m Int
+getItem x =
+  case readMaybe x of
+    Just i -> return i
+    Nothing -> throwError $ strMsg $ "Invalid number: " ++ x
+
+
+getPriority :: (Error e, MonadError e m) => String -> m Priority
+getPriority x =
+  case readMaybe x of
+    Just c -> return $ makePriority c
+    Nothing -> throwError $ strMsg $ "Invalid priority: " ++ x
 
 
 -- XXX: Making this separate because an atomic write would be better, but I
