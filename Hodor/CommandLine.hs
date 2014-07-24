@@ -79,6 +79,7 @@ commands = M.fromList [
   , ("lsprj", cmdListProjects)
   , ("undo", cmdUndo)
   , ("pri", cmdPrioritize)
+  , ("p", cmdPrioritize)
   ]
 
 
