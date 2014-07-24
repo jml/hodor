@@ -13,22 +13,24 @@ import Data.Time (Day, showGregorian)
 import qualified Data.Sequence as S
 
 
-newtype Priority = Pri { _unPri :: Maybe Char } deriving (Show, Eq)
+data Priority = Pri Char | NoPri deriving (Show, Eq)
+
 
 instance Ord Priority where
-  (Pri Nothing) <= x = (x == Pri Nothing)
-  _ <= (Pri Nothing) = True
+  NoPri <= x = (x == NoPri)
+  _ <= NoPri = True
   (Pri x) <= (Pri y) = x < y
 
 
 makePriority :: Char -> Priority
-makePriority = Pri . Just
+makePriority = Pri
 
 noPriority :: Priority
-noPriority = Pri Nothing
+noPriority = NoPri
 
 isPriority :: Priority -> Bool
-isPriority = isJust . _unPri
+isPriority (Pri _) = True
+isPriority _       = False
 
 
 data Project = Project String deriving (Eq, Ord)
@@ -269,8 +271,8 @@ instance Unparse Day where
 
 
 instance Unparse Priority where
-  unparse (Pri (Just p)) = ['(', p, ')', ' ']
-  unparse (Pri Nothing)  = []
+  unparse (Pri p) = ['(', p, ')', ' ']
+  unparse NoPri  = []
 
 
 instance Unparse TodoItem where
