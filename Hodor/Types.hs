@@ -255,10 +255,11 @@ undoItems file = runEvents . _adjustItems _undoItem file
 _prioritize :: Priority -> Int -> TodoItem -> TodoEvents TodoItem
 _prioritize pri@(Pri _) i todo = event $
   case (priority todo) of
-    NoPri -> (prioritize todo pri, TaskChanged i todo Prioritized)
+    NoPri -> (newTodo, TaskChanged i newTodo Prioritized)
     old   -> if (pri == old)
              then (todo, TaskChanged i todo AlreadyPrioritized)
-             else (prioritize todo pri, TaskChanged i todo (ChangedPriority old))
+             else (newTodo, TaskChanged i newTodo (ChangedPriority old))
+  where newTodo = prioritize todo pri
 _prioritize _ _ _ = error "Do not support deprioritization"
 
 
