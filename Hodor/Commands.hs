@@ -43,12 +43,12 @@ import Hodor.Types (
   TodoEvent(..),
   hasPriority,
   filterItems,
-  makePriority,
   numItems,
   Priority,
   priority,
   prioritizeItem,
-  undoItems
+  undoItems,
+  unsafeMakePriority
   )
 
 
@@ -209,7 +209,7 @@ getItem x =
 
 
 getPriority :: (Error e, MonadError e m) => String -> m Priority
-getPriority (c:[]) = return $ makePriority c
+getPriority (c:[]) = return $ unsafeMakePriority c
 getPriority x      = throwError $ strMsg $ "Invalid priority: " ++ x
 
 

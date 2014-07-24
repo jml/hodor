@@ -14,7 +14,7 @@ import Hodor.Types (
   description,
   doItems,
   listItems,
-  makePriority,
+  unsafeMakePriority,
   makeTodoFile,
   noPriority,
   priority,
@@ -83,7 +83,7 @@ main = hspec $ do
       it "extracts contexts" $ do
         shouldHave parsed contexts [Context "home"]
       it "extracts priority" $ do
-        shouldHave parsed priority (makePriority 'B')
+        shouldHave parsed priority (unsafeMakePriority 'B')
       it "can be described" $ do
         shouldHave parsed unparse input
 
@@ -145,11 +145,11 @@ main = hspec $ do
   describe "priorities" $ do
     describe "ordering" $ do
       it "ranks A above B" $ do
-        makePriority 'A' < makePriority 'B' `shouldBe` True
-        makePriority 'A' >= makePriority 'B' `shouldBe` False
+        unsafeMakePriority 'A' < unsafeMakePriority 'B' `shouldBe` True
+        unsafeMakePriority 'A' >= unsafeMakePriority 'B' `shouldBe` False
       it "ranks A above D" $ do
-        makePriority 'A' < makePriority 'D' `shouldBe` True
-        makePriority 'A' >= makePriority 'D' `shouldBe` False
+        unsafeMakePriority 'A' < unsafeMakePriority 'D' `shouldBe` True
+        unsafeMakePriority 'A' >= unsafeMakePriority 'D' `shouldBe` False
       it "ranks any priority above none" $ do
-        makePriority 'A' < noPriority `shouldBe` True
-        makePriority 'Z' < noPriority `shouldBe` True
+        unsafeMakePriority 'A' < noPriority `shouldBe` True
+        unsafeMakePriority 'Z' < noPriority `shouldBe` True

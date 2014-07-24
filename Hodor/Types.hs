@@ -22,8 +22,8 @@ instance Ord Priority where
   (Pri x) <= (Pri y) = x < y
 
 
-makePriority :: Char -> Priority
-makePriority = Pri
+unsafeMakePriority :: Char -> Priority
+unsafeMakePriority = Pri
 
 noPriority :: Priority
 noPriority = NoPri

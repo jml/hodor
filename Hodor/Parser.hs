@@ -15,13 +15,13 @@ import qualified Text.Parsec as P
 
 import Hodor.Functional (onLeft, unleft)
 import Hodor.Types (
-  makePriority,
   makeTodoFile,
   noPriority,
   TodoFile,
   TodoItem(TodoItem),
   Priority,
   Token(Bareword, ProjectToken, ContextToken),
+  unsafeMakePriority
   )
 
 
@@ -77,7 +77,7 @@ p_priority = do
   p <- optionMaybe p_priorityChar
   case p of
     Nothing -> return noPriority
-    Just c  -> return (makePriority c)
+    Just c  -> return (unsafeMakePriority c)
 
 p_priorityChar :: Parser Char
 p_priorityChar =
