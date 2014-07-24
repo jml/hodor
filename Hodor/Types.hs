@@ -209,6 +209,10 @@ _adjustItem f file i = do
       return (replaceItem file i newTodo)
 
 
+_adjustItems :: (Int -> TodoItem -> TodoEvents TodoItem) -> TodoFile -> [Int] -> TodoEvents TodoFile
+_adjustItems = foldM . _adjustItem
+
+
 _doItem :: Day -> Int -> TodoItem -> TodoEvents TodoItem
 _doItem day i todo = event $
   if isDone todo
@@ -217,12 +221,8 @@ _doItem day i todo = event $
   where newTodo = markAsDone todo day
 
 
-doItem :: TodoFile -> Day -> Int -> TodoEvents TodoFile
-doItem file day i = _adjustItem (_doItem day) file i
-
-
 doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [TodoEvent])
-doItems file day = runEvents . foldM (flip doItem day) file
+doItems file day = runEvents . _adjustItems (_doItem day) file
 
 
 _undoItem :: Int -> TodoItem -> TodoEvents TodoItem
@@ -233,12 +233,8 @@ _undoItem i todo = event $
   where newTodo = markAsUndone todo
 
 
-undoItem :: TodoFile -> Int -> TodoEvents TodoFile
-undoItem = _adjustItem _undoItem
-
-
 undoItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
-undoItems file = runEvents . foldM undoItem file
+undoItems file = runEvents . _adjustItems _undoItem file
 
 
 -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
