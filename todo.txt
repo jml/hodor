@@ -18,6 +18,5 @@ Implement prepend @feature
 Implement apppend @feature
 Implement replace @feature
 Implement help @feature
-(A) Implement prioritize @feature
+x 2014-07-24 Implement prioritize @feature
 (A) Implement deprioritize @feature
-
