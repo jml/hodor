@@ -90,13 +90,21 @@ markAsUndone :: TodoItem -> TodoItem
 markAsUndone item = item { dateCompleted = Nothing }
 
 
+prioritize :: TodoItem -> Priority -> TodoItem
+prioritize item p = item { priority = p }
+
+
 -- XXX: NumberedTodoItem
-data TodoEvent = Done Int TodoItem |
-                  AlreadyDone Int TodoItem |
-                  NoSuchTask Int |
-                  Undone Int TodoItem |
-                  AlreadyNotDone Int TodoItem
-                  deriving (Show, Eq)
+data TodoEvent =
+  Done Int TodoItem |
+  AlreadyDone Int TodoItem |
+  NoSuchTask Int |
+  Undone Int TodoItem |
+  AlreadyNotDone Int TodoItem |
+  Prioritized Int TodoItem |
+  AlreadyPrioritized Int TodoItem |
+  ChangedPriority Int TodoItem Priority
+  deriving (Show, Eq)
 
 
 -- XXX: Could make this a NamedList type class or something, implement
@@ -237,6 +245,20 @@ _undoItem i todo = event $
 
 undoItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
 undoItems file = runEvents . _adjustItems _undoItem file
+
+
+_prioritize :: Priority -> Int -> TodoItem -> TodoEvents TodoItem
+_prioritize pri@(Pri _) i todo = event $
+  case (priority todo) of
+    NoPri -> (prioritize todo pri, Prioritized i todo)
+    old   -> if (pri == old)
+             then (todo, AlreadyPrioritized i todo)
+             else (prioritize todo pri, ChangedPriority i todo old)
+_prioritize _ _ _ = error "Do not support deprioritization"
+
+
+prioritizeItem :: Priority -> TodoFile -> Int -> (TodoFile, [TodoEvent])
+prioritizeItem p file = runEvents . _adjustItem (_prioritize p) file
 
 
 -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems

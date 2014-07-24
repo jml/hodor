@@ -44,6 +44,7 @@ import Hodor.Types (
   makePriority,
   numItems,
   Priority,
+  prioritizeItem,
   undoItems
   )
 
@@ -135,9 +136,9 @@ cmdUndo args = do
 
 cmdPrioritize :: HodorCommand
 cmdPrioritize (i:p:[]) = do
-  item <- getItem i
-  pri <- getPriority p
-  return ()
+  (newTodoFile, events) <- liftM prioritizeItem (getPriority p) `ap` loadTodoFile `ap` getItem i
+  replaceTodoFile newTodoFile
+  reportEvents events
 cmdPrioritize _        = throwError $ strMsg "Expect ITEM# PRIORITY"
 
 
@@ -204,10 +205,8 @@ getItem x =
 
 
 getPriority :: (Error e, MonadError e m) => String -> m Priority
-getPriority x =
-  case readMaybe x of
-    Just c -> return $ makePriority c
-    Nothing -> throwError $ strMsg $ "Invalid priority: " ++ x
+getPriority (c:[]) = return $ makePriority c
+getPriority x      = throwError $ strMsg $ "Invalid priority: " ++ x
 
 
 -- XXX: Making this separate because an atomic write would be better, but I
