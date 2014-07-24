@@ -134,13 +134,7 @@ cmdMarkAsDone args = do
   let (newTodoFile, doneItems) = doItems todoFile day items
   path <- liftM todoFilePath ask
   liftIO $ replaceFile path $ unparse newTodoFile
-  forM_ doneItems (liftIO . putStr . format)
-  where
-    format (Done i t) = unlines [formatTodo i t,
-                                 appMessage $ printf "%d marked as done." i]
-    format (AlreadyDone i t) = unlines [formatTodo i t,
-                                        appMessage $ printf "%d is already marked done." i]
-    format (NoSuchTask i) = appMessage $ printf "No task %d\n" i
+  forM_ doneItems (liftIO . putStr . formatEvent)
 
 
 cmdUndo :: HodorCommand
@@ -150,13 +144,23 @@ cmdUndo args = do
   let (newTodoFile, doneItems) = undoItems todoFile items
   path <- liftM todoFilePath ask
   liftIO $ replaceFile path $ unparse newTodoFile
-  forM_ doneItems (liftIO . putStr . format)
-  where
-    format (Undone i t) = unlines [formatTodo i t,
-                                   appMessage $ printf "%d no longer marked as done." i]
-    format (AlreadyNotDone i t) = unlines [formatTodo i t,
-                                           appMessage $ printf "%d was already not marked done." i]
-    format (NoSuchTask i) = appMessage $ printf "No task %d\n" i
+  forM_ doneItems (liftIO . putStr . formatEvent)
+
+
+formatEvent :: TodoEvent -> String
+formatEvent (Done i t) =
+  unlines [formatTodo i t,
+           appMessage $ printf "%d marked as done." i]
+formatEvent (AlreadyDone i t) =
+  unlines [formatTodo i t,
+           appMessage $ printf "%d is already marked done." i]
+formatEvent (NoSuchTask i) = appMessage $ printf "No task %d\n" i
+formatEvent (Undone i t) =
+  unlines [formatTodo i t,
+           appMessage $ printf "%d no longer marked as done." i]
+formatEvent (AlreadyNotDone i t) =
+  unlines [formatTodo i t,
+           appMessage $ printf "%d was already not marked done." i]
 
 
 cmdListContexts :: HodorCommand
