@@ -32,6 +32,7 @@ import Hodor.Config (
   doneFilePath
   )
 import Hodor.File (expandUser)
+import Hodor.Format (appMessage, Formattable, format)
 import Hodor.Functional (andP)
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
@@ -39,14 +40,11 @@ import Hodor.Types (
   allProjects,
   archive,
   doItems,
-  TaskAction(..),
-  TodoEvent(..),
   hasPriority,
   filterItems,
   makePriority,
   numItems,
   Priority,
-  priority,
   prioritizeItem,
   undoItems,
   )
@@ -61,13 +59,6 @@ type HodorCommand = [String] -> HodorM ()
 
 runHodorCommand :: HodorCommand -> Config -> [String] -> IO (Either String ())
 runHodorCommand cmd cfg rest = runErrorT $ runReaderT (unHM (cmd rest)) cfg
-
-
-appName :: String
-appName = "HODOR"
-
-appMessage :: String -> String
-appMessage = printf "%s: %s" appName
 
 
 cmdList :: HodorCommand
@@ -174,28 +165,6 @@ getListSummary :: TodoFile -> [(Int, TodoItem)] -> String
 getListSummary file items = appMessage $ printf "%d of %d items shown" (length items) (numItems file)
 
 
--- XXX: NumberedTodoItem
-formatTodo :: Int -> TodoItem -> String
-formatTodo i t = printf "%02d %s" i (unparse t)
-
-
-formatEvent :: TodoEvent -> String
-formatEvent (NoSuchTask i) = appMessage $ printf "No task %d\n" i
-formatEvent (TaskChanged i t e) =
-  unlines [formatTodo i t, appMessage $ formatEvent' e i t]
-
-formatEvent' :: TaskAction -> Int -> TodoItem -> String
-formatEvent' Done i _ = printf "%d marked as done." i
-formatEvent' AlreadyDone i _ = printf "%d is already marked done." i
-formatEvent' Undone i _ = printf "%d no longer marked as done." i
-formatEvent' AlreadyNotDone i _ = printf "%d was already not marked done." i
-formatEvent' Prioritized i t = printf "%d prioritized %s." i (formatPriority (priority t))
-formatEvent' AlreadyPrioritized i t = printf "%d already prioritized %s." i (formatPriority (priority t))
-formatEvent' (ChangedPriority p) i t = printf "%d re-prioritized from %s to %s." i (formatPriority p) (formatPriority (priority t))
-
-
-formatPriority = init . unparse
-
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]
 getItems [] = throwError $ strMsg "No items specified"
 getItems xs = mapM getItem xs
@@ -244,8 +213,8 @@ appendTodoItem item = do
   liftIO $ appendFile todoFileName $ item
 
 
-reportEvents :: [TodoEvent] -> HodorM ()
-reportEvents = mapM_ (liftIO . putStr . formatEvent)
+reportEvents :: (Formattable e) => [e] -> HodorM ()
+reportEvents = mapM_ (liftIO . putStr . format)
 
 
 getDateAdded :: HodorM (Maybe Day)
