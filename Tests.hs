@@ -16,6 +16,7 @@ import Hodor.Types (
   listItems,
   makePriority,
   makeTodoFile,
+  noPriority,
   priority,
   projects,
   TodoEvent(..),
@@ -139,3 +140,15 @@ main = hspec $ do
             originalItem = unsafeGetItem sampleTodo index
             todoWriter = doItems sampleTodo someDay [index]
         unsafeGetItem (fst todoWriter) index `shouldBe` originalItem { dateCompleted = Just someDay }
+
+  describe "priorities" $ do
+    describe "ordering" $ do
+      it "ranks A above B" $ do
+        makePriority 'A' < makePriority 'B' `shouldBe` True
+        makePriority 'A' >= makePriority 'B' `shouldBe` False
+      it "ranks A above D" $ do
+        makePriority 'A' < makePriority 'D' `shouldBe` True
+        makePriority 'A' >= makePriority 'D' `shouldBe` False
+      it "ranks any priority above none" $ do
+        makePriority 'A' < noPriority `shouldBe` True
+        makePriority 'Z' < noPriority `shouldBe` True

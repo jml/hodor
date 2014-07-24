@@ -14,9 +14,13 @@ import Data.Time (Day, showGregorian)
 import qualified Data.Sequence as S
 
 
--- XXX: Consider making this newtype and incorporating the Maybe so we can
--- have a better sort implementation.
-newtype Priority = Pri { _unPri :: Maybe Char } deriving (Show, Eq, Ord)
+newtype Priority = Pri { _unPri :: Maybe Char } deriving (Show, Eq)
+
+instance Ord Priority where
+  (Pri Nothing) <= x = (x == Pri Nothing)
+  _ <= (Pri Nothing) = True
+  (Pri x) <= (Pri y) = x < y
+
 
 makePriority :: Char -> Priority
 makePriority = Pri . Just
