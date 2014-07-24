@@ -6,6 +6,7 @@ import Prelude hiding (concatMap)
 
 import Control.Arrow (second)
 import Control.Monad.Writer
+import Data.Char (isAsciiUpper, isAsciiLower, toUpper)
 import Data.Foldable (concatMap, toList)
 import Data.List (nub, sort)
 import Data.Maybe (isJust)
@@ -22,8 +23,16 @@ instance Ord Priority where
   (Pri x) <= (Pri y) = x < y
 
 
+makePriority :: Char -> Maybe Priority
+makePriority c | isAsciiUpper c = Just . Pri $ c
+               | isAsciiLower c = Just . Pri . toUpper $ c
+               | otherwise      = Nothing
+
 unsafeMakePriority :: Char -> Priority
-unsafeMakePriority = Pri
+unsafeMakePriority c =
+  case makePriority c of
+    Just p -> p
+    Nothing -> error ("Invalid priority " ++ show c ++ ", must be upper-case character")
 
 noPriority :: Priority
 noPriority = NoPri
