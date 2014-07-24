@@ -121,7 +121,7 @@ cmdArchive _ = do
   todoPath <- liftM todoFilePath ask
   donePath <- liftM doneFilePath ask
   liftIO $ appendFile donePath doneString
-  liftIO $ replaceFile todoPath (unparse newTodoFile)
+  replaceTodoFile newTodoFile
   liftIO $ putStr doneString
   liftIO $ putStrLn $ appMessage $ printf "%s archived." todoPath
 
@@ -132,8 +132,7 @@ cmdMarkAsDone args = do
   day <- liftIO today
   todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = doItems todoFile day items
-  path <- liftM todoFilePath ask
-  liftIO $ replaceFile path $ unparse newTodoFile
+  replaceTodoFile newTodoFile
   forM_ doneItems (liftIO . putStr . formatEvent)
 
 
@@ -142,8 +141,7 @@ cmdUndo args = do
   items <- getItems args
   todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = undoItems todoFile items
-  path <- liftM todoFilePath ask
-  liftIO $ replaceFile path $ unparse newTodoFile
+  replaceTodoFile newTodoFile
   forM_ doneItems (liftIO . putStr . formatEvent)
 
 
@@ -220,6 +218,12 @@ loadTodoFile = do
   case parseTodoFile expanded contents of
     Left e -> (throwError . strMsg . show) e
     Right r -> return r
+
+
+replaceTodoFile :: TodoFile -> HodorM ()
+replaceTodoFile newTodoFile = do
+  path <- liftM todoFilePath ask
+  liftIO $ replaceFile path $ unparse newTodoFile
 
 
 today :: IO Day
