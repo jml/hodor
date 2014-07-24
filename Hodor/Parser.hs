@@ -15,6 +15,7 @@ import qualified Text.Parsec as P
 
 import Hodor.Functional (onLeft, unleft)
 import Hodor.Types (
+  makePriority,
   makeTodoFile,
   TodoFile,
   TodoItem(TodoItem),
@@ -77,7 +78,7 @@ p_priority =
     p <- letter
     char ')'
     char ' '
-    return p
+    return $ makePriority p
 
 p_date :: Parser Day
 p_date = do

@@ -15,9 +15,11 @@ import Hodor.Types (
   description,
   doItems,
   listItems,
+  makePriority,
   makeTodoFile,
   priority,
   projects,
+  TodoEvent(..),
   TodoFile,
   todoFileName,
   unparse,
@@ -80,7 +82,7 @@ main = hspec $ do
       it "extracts contexts" $ do
         shouldHave parsed contexts [Context "home"]
       it "extracts priority" $ do
-        shouldHave parsed priority (Just 'B')
+        shouldHave parsed priority (Just $ makePriority 'B')
       it "can be described" $ do
         shouldHave parsed unparse input
 

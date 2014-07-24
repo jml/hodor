@@ -16,7 +16,11 @@ import qualified Data.Sequence as S
 
 -- XXX: Consider making this newtype and incorporating the Maybe so we can
 -- have a better sort implementation.
-type Priority = Char
+newtype Priority = Pri Char deriving (Show, Eq, Ord)
+
+makePriority :: Char -> Priority
+makePriority = Pri
+
 
 data Project = Project String deriving (Eq, Ord)
 
@@ -255,7 +259,7 @@ instance Unparse Day where
 
 
 instance Unparse Priority where
-  unparse p = ['(', p, ')', ' ']
+  unparse (Pri p) = ['(', p, ')', ' ']
 
 
 instance Unparse TodoItem where
