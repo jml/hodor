@@ -71,10 +71,6 @@ cmdList args =  listItemsCommand (andP matchers)
     matcher ('-':arg) = isNothing . matchTodoWithRegex arg
     matcher arg = isJust . matchTodoWithRegex arg
     matchTodoWithRegex arg = matchRegex (mkRegex arg) . unparse
-    -- XXX: I don't know whether it helps (i.e. improves performance) if we
-    -- run mkRegex over the list first. It's possible that this means we only
-    -- compile every regex once, whereas otherwise we'd compile them once per
-    -- item in the todo list. I also don't know how to find out.
     matchers = map matcher (filter (not . null) args)
 
 
