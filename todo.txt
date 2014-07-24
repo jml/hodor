@@ -1,0 +1,23 @@
+Add support for a configuration file @feature
+Add support for colored output @feature
+Implement a report for todos by project @feature
+Implement a report for todos by context @feature
+Set up some QuickCheck tests and use them to @test untested code
+Try to make configuration data structures more elegant (lenses?) @refactor
+Test & implement Ord for TodoItem @refactor
+New data type for NumberedTodoItem @refactor
+Rename 'internal' methods to have underscore prefix @refactor
+Try to find a way to organize tests better @refactor @test
+Revisit the error type in Commands (maybe make it more generic?) @refactor
+Try to move Commands out of IO (either wrap the IO monad, or try free monads) @refactor
+Split up Tests to be better organized @refactor @test
+Add configuration option for default command @feature
+Add configuration option for auto-archive @feature
+Implement remove @feature
+Implement prepend @feature
+Implement apppend @feature
+Implement replace @feature
+Implement help @feature
+(A) Implement prioritize @feature
+(A) Implement deprioritize @feature
+

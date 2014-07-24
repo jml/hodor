@@ -17,8 +17,8 @@ data Config = Config {
 
 
 defaultTodoFile, defaultDoneFile :: FilePath
-defaultTodoFile = "/Users/jml/.hodor/todo.txt"
-defaultDoneFile = "/Users/jml/.hodor/done.txt"
+defaultTodoFile = "todo.txt"
+defaultDoneFile = "done.txt"
 
 defaultConfig :: Config
 defaultConfig = Config { todoFilePath = defaultTodoFile,
