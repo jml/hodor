@@ -144,22 +144,6 @@ cmdUndo args = do
   reportEvents doneItems
 
 
-formatEvent :: TodoEvent -> String
-formatEvent (Done i t) =
-  unlines [formatTodo i t,
-           appMessage $ printf "%d marked as done." i]
-formatEvent (AlreadyDone i t) =
-  unlines [formatTodo i t,
-           appMessage $ printf "%d is already marked done." i]
-formatEvent (NoSuchTask i) = appMessage $ printf "No task %d\n" i
-formatEvent (Undone i t) =
-  unlines [formatTodo i t,
-           appMessage $ printf "%d no longer marked as done." i]
-formatEvent (AlreadyNotDone i t) =
-  unlines [formatTodo i t,
-           appMessage $ printf "%d was already not marked done." i]
-
-
 cmdListContexts :: HodorCommand
 cmdListContexts _ = do
   liftM allContexts loadTodoFile >>= mapM_ (liftIO . putStrLn . show)
@@ -192,6 +176,22 @@ getListSummary file items = appMessage $ printf "%d of %d items shown" (length i
 -- XXX: NumberedTodoItem
 formatTodo :: Int -> TodoItem -> String
 formatTodo i t = printf "%02d %s" i (unparse t)
+
+
+formatEvent :: TodoEvent -> String
+formatEvent (Done i t) =
+  unlines [formatTodo i t,
+           appMessage $ printf "%d marked as done." i]
+formatEvent (AlreadyDone i t) =
+  unlines [formatTodo i t,
+           appMessage $ printf "%d is already marked done." i]
+formatEvent (NoSuchTask i) = appMessage $ printf "No task %d\n" i
+formatEvent (Undone i t) =
+  unlines [formatTodo i t,
+           appMessage $ printf "%d no longer marked as done." i]
+formatEvent (AlreadyNotDone i t) =
+  unlines [formatTodo i t,
+           appMessage $ printf "%d was already not marked done." i]
 
 
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]
