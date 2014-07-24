@@ -96,7 +96,7 @@ cmdAddPure todoFile (Just day) args = cmdAddPure todoFile Nothing (show day:args
 cmdAddPure todoFile Nothing args =
   let item = unwords args ++ "\n"
       count = numItems todoFile + 1
-      messages = [formatStringTodo (count, item), appMessage $ printf "%d added." count] in
+      messages = [formatStringTodo (count, item), eventAdd count] in
   (item, unlines messages)
 
 
@@ -110,7 +110,7 @@ cmdArchive _ = do
   liftIO $ appendFile donePath doneString
   replaceTodoFile newTodoFile
   liftIO $ putStr doneString
-  liftIO $ putStrLn $ appMessage $ printf "%s archived." todoPath
+  liftIO $ putStrLn $ eventArchived todoPath
 
 
 cmdMarkAsDone :: HodorCommand
@@ -149,7 +149,7 @@ cmdListProjects _ = do
 
 -- XXX: NumberedTodoItem
 showTodoList :: TodoFile -> [(Int, TodoItem)] -> String
-showTodoList file items = unlines $ concat [formatLines items, ["--", getListSummary file items]]
+showTodoList file items = unlines $ concat [formatLines items, ["--", eventItemsShown file items]]
 
 
 -- XXX: NumberedTodoItem
@@ -161,11 +161,6 @@ formatLines =
 -- XXX: NumberedTodoItem
 formatStringTodo :: (Int, String) -> String
 formatStringTodo (i, t) = printf "%02d %s" i t
-
-
--- XXX: NumberedTodoItem
-getListSummary :: TodoFile -> [(Int, TodoItem)] -> String
-getListSummary file items = appMessage $ printf "%d of %d items shown" (length items) (numItems file)
 
 
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]
@@ -218,6 +213,17 @@ appendTodoItem item = do
 
 reportEvents :: (Formattable e) => [e] -> HodorM ()
 reportEvents = mapM_ (liftIO . putStr . format)
+
+-- XXX: Make these real events
+eventAdd :: Int -> String
+eventAdd count = appMessage $ printf "%d added." count
+
+eventArchived :: FilePath -> String
+eventArchived file = appMessage $ printf "%s archived." file
+
+-- XXX: NumberedTodoItem
+eventItemsShown :: TodoFile -> [(Int, TodoItem)] -> String
+eventItemsShown file items = appMessage $ printf "%d of %d items shown" (length items) (numItems file)
 
 
 getDateAdded :: HodorM (Maybe Day)
