@@ -3,7 +3,7 @@
 module Hodor.Commands where
 
 import Control.Arrow (second)
-import Control.Monad (liftM)
+import Control.Monad (ap, liftM)
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
@@ -127,19 +127,14 @@ cmdArchive _ = do
 
 cmdMarkAsDone :: HodorCommand
 cmdMarkAsDone args = do
-  items <- getItems args
-  day <- liftIO today
-  todoFile <- loadTodoFile
-  let (newTodoFile, doneItems) = doItems todoFile day items
+  (newTodoFile, doneItems) <- liftM doItems loadTodoFile `ap` liftIO today `ap` getItems args
   replaceTodoFile newTodoFile
   reportEvents doneItems
 
 
 cmdUndo :: HodorCommand
 cmdUndo args = do
-  items <- getItems args
-  todoFile <- loadTodoFile
-  let (newTodoFile, doneItems) = undoItems todoFile items
+  (newTodoFile, doneItems) <- liftM undoItems loadTodoFile `ap` getItems args
   replaceTodoFile newTodoFile
   reportEvents doneItems
 
