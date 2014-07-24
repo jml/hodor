@@ -16,10 +16,16 @@ import qualified Data.Sequence as S
 
 -- XXX: Consider making this newtype and incorporating the Maybe so we can
 -- have a better sort implementation.
-newtype Priority = Pri (Maybe Char) deriving (Show, Eq, Ord)
+newtype Priority = Pri { _unPri :: Maybe Char } deriving (Show, Eq, Ord)
 
 makePriority :: Char -> Priority
 makePriority = Pri . Just
+
+noPriority :: Priority
+noPriority = Pri Nothing
+
+isPriority :: Priority -> Bool
+isPriority = isJust . _unPri
 
 
 data Project = Project String deriving (Eq, Ord)
@@ -38,7 +44,7 @@ data Token = Bareword String | ProjectToken String | ContextToken String derivin
 
 data TodoItem = TodoItem {
   dateCompleted :: Maybe Day,
-  priority :: Maybe Priority,
+  priority :: Priority,
   dateCreated :: Maybe Day,
   tokens :: [Token]
 } deriving (Show, Eq, Ord)
@@ -67,7 +73,7 @@ isDone = isJust . dateCompleted
 
 -- TODO: UNTESTED: hasPriority
 hasPriority :: TodoItem -> Bool
-hasPriority = isJust . priority
+hasPriority = isPriority . priority
 
 -- XXX: How do I do post-conditions in Haskell?
 -- TODO: UNTESTED: markAsDone

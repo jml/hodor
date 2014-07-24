@@ -17,6 +17,7 @@ import Hodor.Functional (onLeft, unleft)
 import Hodor.Types (
   makePriority,
   makeTodoFile,
+  noPriority,
   TodoFile,
   TodoItem(TodoItem),
   Priority,
@@ -62,7 +63,7 @@ p_todoTxtLine = try (many (oneOf " \t") >> lookAhead p_eol >> return Nothing)
 todoTxtLine :: Parser TodoItem
 todoTxtLine = do
   completed <- optionMaybe p_completion
-  p <- optionMaybe p_priority
+  p <- p_priority
   created <- optionMaybe p_date
   todo_tokens <- p_tokens
   return $ TodoItem completed p created todo_tokens
@@ -72,13 +73,20 @@ p_completion :: Parser Day
 p_completion = char 'x' >> char ' ' >> p_date
 
 p_priority :: Parser Priority
-p_priority =
+p_priority = do
+  p <- optionMaybe p_priorityChar
+  case p of
+    Nothing -> return noPriority
+    Just c  -> return (makePriority c)
+
+p_priorityChar :: Parser Char
+p_priorityChar =
   do
     char '('
     p <- letter
     char ')'
     char ' '
-    return $ makePriority p
+    return p
 
 p_date :: Parser Day
 p_date = do

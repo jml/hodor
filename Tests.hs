@@ -81,7 +81,7 @@ main = hspec $ do
       it "extracts contexts" $ do
         shouldHave parsed contexts [Context "home"]
       it "extracts priority" $ do
-        shouldHave parsed priority (Just $ makePriority 'B')
+        shouldHave parsed priority (makePriority 'B')
       it "can be described" $ do
         shouldHave parsed unparse input
 
