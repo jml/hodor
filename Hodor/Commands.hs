@@ -96,8 +96,7 @@ cmdAddPure todoFile (Just day) args = cmdAddPure todoFile Nothing (show day:args
 cmdAddPure todoFile Nothing args =
   let item = unwords args ++ "\n"
       count = numItems todoFile + 1
-      -- XXX: NumberedTodoItem
-      messages = [printf "%02d %s" count item, appMessage $ printf "%d added." count] in
+      messages = [formatStringTodo (count, item), appMessage $ printf "%d added." count] in
   (item, unlines messages)
 
 
@@ -156,8 +155,12 @@ showTodoList file items = unlines $ concat [formatLines items, ["--", getListSum
 -- XXX: NumberedTodoItem
 formatLines :: [(Int, TodoItem)] -> [String]
 formatLines =
-  map formatOneTodo . sortWith snd . map (second unparse)
-  where formatOneTodo (i, t) = printf "%02d %s" i t
+  map formatStringTodo . sortWith snd . map (second unparse)
+
+
+-- XXX: NumberedTodoItem
+formatStringTodo :: (Int, String) -> String
+formatStringTodo (i, t) = printf "%02d %s" i t
 
 
 -- XXX: NumberedTodoItem
