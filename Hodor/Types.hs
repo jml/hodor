@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Hodor.Types where
@@ -79,7 +78,6 @@ isDone = isJust . dateCompleted
 hasPriority :: TodoItem -> Bool
 hasPriority = isPriority . priority
 
--- XXX: How do I do post-conditions in Haskell?
 -- TODO: UNTESTED: markAsDone
 markAsDone :: TodoItem -> Day -> TodoItem
 markAsDone item day | isDone item = item
