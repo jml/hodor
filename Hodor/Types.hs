@@ -96,9 +96,9 @@ prioritize item p = item { priority = p }
 
 -- XXX: NumberedTodoItem
 data TodoEvent =
+  NoSuchTask Int |
   Done Int TodoItem |
   AlreadyDone Int TodoItem |
-  NoSuchTask Int |
   Undone Int TodoItem |
   AlreadyNotDone Int TodoItem |
   Prioritized Int TodoItem |
