@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Hodor.Commands where
 
@@ -188,10 +189,12 @@ formatEvent' Done i _ = printf "%d marked as done." i
 formatEvent' AlreadyDone i _ = printf "%d is already marked done." i
 formatEvent' Undone i _ = printf "%d no longer marked as done." i
 formatEvent' AlreadyNotDone i _ = printf "%d was already not marked done." i
-formatEvent' Prioritized i t = printf "%d prioritized %s." i (show (priority t))
-formatEvent' AlreadyPrioritized i t = printf "%d already prioritized %s." i (show (priority t))
-formatEvent' (ChangedPriority p) i t = printf "%d re-prioritized from %s to %s." i (show (priority t)) (show p)
+formatEvent' Prioritized i t = printf "%d prioritized %s." i (formatPriority (priority t))
+formatEvent' AlreadyPrioritized i t = printf "%d already prioritized %s." i (formatPriority (priority t))
+formatEvent' (ChangedPriority p) i t = printf "%d re-prioritized from %s to %s." i (formatPriority (priority t)) (formatPriority p)
 
+
+formatPriority = init . unparse
 
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]
 getItems [] = throwError $ strMsg "No items specified"
