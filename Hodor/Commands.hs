@@ -7,7 +7,6 @@ import Control.Monad (liftM)
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
-import Data.Foldable (forM_)
 import Data.Maybe (isJust, isNothing)
 import Data.Time (
   Day,
@@ -133,7 +132,7 @@ cmdMarkAsDone args = do
   todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = doItems todoFile day items
   replaceTodoFile newTodoFile
-  forM_ doneItems (liftIO . putStr . formatEvent)
+  reportEvents doneItems
 
 
 cmdUndo :: HodorCommand
@@ -142,7 +141,7 @@ cmdUndo args = do
   todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = undoItems todoFile items
   replaceTodoFile newTodoFile
-  forM_ doneItems (liftIO . putStr . formatEvent)
+  reportEvents doneItems
 
 
 formatEvent :: TodoEvent -> String
@@ -224,6 +223,10 @@ replaceTodoFile :: TodoFile -> HodorM ()
 replaceTodoFile newTodoFile = do
   path <- liftM todoFilePath ask
   liftIO $ replaceFile path $ unparse newTodoFile
+
+
+reportEvents :: [TodoEvent] -> HodorM ()
+reportEvents = mapM_ (liftIO . putStr . formatEvent)
 
 
 today :: IO Day
