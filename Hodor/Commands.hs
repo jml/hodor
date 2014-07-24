@@ -45,6 +45,7 @@ import Hodor.Types (
   makePriority,
   numItems,
   Priority,
+  priority,
   prioritizeItem,
   undoItems
   )
@@ -187,6 +188,9 @@ formatEvent' Done i _ = printf "%d marked as done." i
 formatEvent' AlreadyDone i _ = printf "%d is already marked done." i
 formatEvent' Undone i _ = printf "%d no longer marked as done." i
 formatEvent' AlreadyNotDone i _ = printf "%d was already not marked done." i
+formatEvent' Prioritized i t = printf "%d prioritized %s." i (show (priority t))
+formatEvent' AlreadyPrioritized i t = printf "%d already prioritized %s." i (show (priority t))
+formatEvent' (ChangedPriority p) i t = printf "%d re-prioritized from %s to %s." i (show (priority t)) (show p)
 
 
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]
