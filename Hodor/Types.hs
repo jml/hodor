@@ -195,40 +195,50 @@ _getItem file i = do
     Just x -> return (Just x)
 
 
-doItem :: TodoFile -> Day -> Int -> TodoEvents TodoFile
-doItem file day i = do
+_adjustItem :: (Int -> TodoItem -> TodoEvents TodoItem) -> TodoFile -> Int -> TodoEvents TodoFile
+_adjustItem f file i = do
   item <- _getItem file i
   case item of
     Nothing -> return file
-    Just todo ->
-      if isDone todo
-      then do
-        logEvent $ AlreadyDone i todo
-        return file
-      else do
-        let newTodo = markAsDone todo day
-        logEvent $ Done i newTodo
-        return (replaceItem file i newTodo)
+    Just todo -> do
+      newTodo <- f i todo
+      return (replaceItem file i newTodo)
+
+
+_doItem :: Day -> Int -> TodoItem -> TodoEvents TodoItem
+_doItem day i todo =
+  if isDone todo
+  then do
+    logEvent $ AlreadyDone i todo
+    return todo
+  else do
+    let newTodo = markAsDone todo day
+    logEvent $ Done i newTodo
+    return newTodo
+
+
+doItem :: TodoFile -> Day -> Int -> TodoEvents TodoFile
+doItem file day i = _adjustItem (_doItem day) file i
 
 
 doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [TodoEvent])
 doItems file day = runEvents . foldM (flip doItem day) file
 
 
+_undoItem :: Int -> TodoItem -> TodoEvents TodoItem
+_undoItem i todo =
+  if not (isDone todo)
+  then do
+    logEvent $ AlreadyNotDone i todo
+    return todo
+  else do
+    let newTodo = markAsUndone todo
+    logEvent $ Undone i newTodo
+    return newTodo
+
+
 undoItem :: TodoFile -> Int -> TodoEvents TodoFile
-undoItem file i = do
-  item <- _getItem file i
-  case item of
-    Nothing -> return file
-    Just todo ->
-      if not (isDone todo)
-      then do
-        logEvent $ AlreadyNotDone i todo
-        return file
-      else do
-        let newTodo = markAsUndone todo
-        logEvent $ Undone i newTodo
-        return (replaceItem file i newTodo)
+undoItem = _adjustItem _undoItem
 
 
 undoItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
