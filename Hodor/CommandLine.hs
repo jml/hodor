@@ -84,17 +84,13 @@ commands = M.fromList [
   ]
 
 
--- XXX: Make the default command configurable
-defaultCommand :: HodorCommand
-defaultCommand = cmdList
-
-
-getCommand :: (Error e, MonadError e m) => [String] -> m (HodorCommand, [String])
-getCommand (name:rest) =
+getCommand :: (Error e, MonadError e m) => Maybe String -> [String] -> m (HodorCommand, [String])
+getCommand _ (name:rest) =
   case M.lookup name commands of
     Just command -> return (command, rest)
     Nothing -> throwError $ usageError ["No such command: ", name, "\n"]
-getCommand [] = return (defaultCommand, [])
+getCommand (Just cmd) [] = getCommand Nothing [cmd]
+getCommand Nothing    _  = throwError $ usageError ["Must specify a command\n"]
 
 
 -- XXX: There *must* be some other way to do this.
@@ -108,8 +104,9 @@ main = do
   argv <- getArgs
   result <- runErrorT $ do
     (opts, args) <- hodorOpts argv
-    (cmd, rest) <- getCommand args
-    r <- liftIO $ runHodorCommand cmd (getConfiguration opts) rest
+    cfg <- return (getConfiguration opts)
+    (cmd, rest) <- getCommand (defaultCommand cfg) args
+    r <- liftIO $ runHodorCommand cmd cfg rest
     eitherToError r
   case result of
     Left e -> (ioError . userError) e
