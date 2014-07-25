@@ -236,9 +236,7 @@ _adjustItems = foldM . _adjustItem
 
 _doItem :: Day -> Int -> TodoItem -> TodoEvents TodoItem
 _doItem day i todo = event $
-  if isDone todo
-  then (todo, TaskChanged Done i todo todo)
-  else (newTodo, TaskChanged Done i todo newTodo)
+  (newTodo, TaskChanged Done i todo newTodo)
   where newTodo = markAsDone todo day
 
 
@@ -248,9 +246,7 @@ doItems file day = runEvents . _adjustItems (_doItem day) file
 
 _undoItem :: Int -> TodoItem -> TodoEvents TodoItem
 _undoItem i todo = event $
-  if not (isDone todo)
-  then (todo, TaskChanged Undone i todo todo)
-  else (newTodo, TaskChanged Undone i todo newTodo)
+  (newTodo, TaskChanged Undone i todo newTodo)
   where newTodo = markAsUndone todo
 
 
@@ -260,17 +256,11 @@ undoItems file = runEvents . _adjustItems _undoItem file
 
 _prioritize :: Priority -> Int -> TodoItem -> TodoEvents TodoItem
 _prioritize pri@(Pri _) i todo = event $
-  case (priority todo) of
-    NoPri -> (newTodo, TaskChanged Prioritized i todo newTodo)
-    old   -> if (pri == old)
-             then (todo, TaskChanged Prioritized i todo todo)
-             else (newTodo, TaskChanged Prioritized i todo newTodo)
+  (newTodo, TaskChanged Prioritized i todo newTodo)
   where newTodo = prioritize todo pri
 _prioritize NoPri i todo = event $
-  case (priority todo) of
-    NoPri -> (todo, TaskChanged Deprioritized i todo todo)
-    _     -> (newTodo, TaskChanged Deprioritized i todo newTodo)
-    where newTodo = prioritize todo NoPri
+  (newTodo, TaskChanged Deprioritized i todo newTodo)
+  where newTodo = prioritize todo NoPri
 
 
 prioritizeItem :: Priority -> TodoFile -> Int -> (TodoFile, [TodoEvent])
