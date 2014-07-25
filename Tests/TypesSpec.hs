@@ -1,4 +1,4 @@
-module Tests.TypesSpec where
+module Tests.TypesSpec (spec) where
 
 import Data.Time (fromGregorian)
 import Test.Hspec
@@ -13,8 +13,24 @@ import Hodor.Types (
   noPriority,
   TaskAction(..),
   TodoEvent(..),
+  TodoFile,
   unsafeGetItem
   )
+
+
+emptyFile :: TodoFile
+emptyFile = makeTodoFile "empty" []
+
+sampleTodoText :: String
+sampleTodoText = unlines [
+  "x 2013-10-12 2013-09-20 A done task +some-project",
+  "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home\n",
+  "2013-09-21 Email John arranging time to catch up @online +some-project"]
+
+sampleTodo :: TodoFile
+sampleTodo = case parseTodoFile "test-todo" sampleTodoText of
+  Left e -> error (show e)
+  Right r -> r
 
 
 spec :: Spec
@@ -22,7 +38,6 @@ spec = describe "Core operations on todos" $ do
   describe "mark as done" $ do
     let someDay = fromGregorian 1982 12 25
     describe "when there are no todos" $ do
-      let emptyFile = makeTodoFile "empty" []
       it "reports no such task" $ do
         snd (doItems someDay emptyFile [2]) `shouldBe` [NoSuchTask 2]
       it "reports no such task for all given tasks" $ do
@@ -31,13 +46,6 @@ spec = describe "Core operations on todos" $ do
         (listItems $ fst (doItems someDay emptyFile [2, 3])) `shouldBe` []
 
     describe "with todos" $ do
-      let sampleTodoText = unlines [
-            "x 2013-10-12 2013-09-20 A done task +some-project",
-            "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home\n",
-            "2013-09-21 Email John arranging time to catch up @online +some-project"]
-          sampleTodo = case parseTodoFile "test-todo" sampleTodoText of
-            Left e -> error (show e)
-            Right r -> r
       it "reports that it marks item as done" $ do
         let index = 2
             originalItem = unsafeGetItem sampleTodo index
