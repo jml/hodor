@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-
 module Hodor.CommandLine where
 
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
