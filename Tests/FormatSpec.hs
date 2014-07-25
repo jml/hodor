@@ -2,7 +2,11 @@ module Tests.FormatSpec (spec) where
 
 import Test.Hspec
 
+import Hodor.Format
+
+
 spec :: Spec
-spec = do
-  describe "Formatting events" $
-    it "works" pending
+spec = describe "Formatting user output" $ do
+  describe "appMessage" $ do
+    it "returns a string prefixed by the appName" $ do
+      appMessage "hello" `shouldBe` appName ++ ": " ++ "hello"
