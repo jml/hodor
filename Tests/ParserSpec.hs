@@ -1,51 +1,25 @@
-module Main where
+module Tests.ParserSpec where
 
 import Data.Time (fromGregorian)
 import Test.Hspec
 import Text.Parsec (parse)
 
 import Hodor.Functional (onLeft)
-import Hodor.Types (
-  Context(Context),
-  Project(Project),
-  contexts,
-  dateCompleted,
-  dateCreated,
-  description,
-  doItems,
-  listItems,
-  unsafeMakePriority,
-  makeTodoFile,
-  noPriority,
-  priority,
-  projects,
-  TaskAction(..),
-  TodoEvent(..),
-  TodoFile,
-  todoFileName,
-  unparse,
-  unsafeGetItem
-  )
 import Hodor.Parser (
   ParseError(ParseError),
   parseTodoFile,
   todoTxtLine,
   )
+import Hodor.Types
 
-
--- XXX: It's really hard to inspect this and figure out what's tested, or to
--- find the tests for a particular thing. Look into other ways to test (HUnit,
--- QuickCheck)
-
--- XXX: Try to split up by module being tested.
 
 testParse parser = onLeft ParseError . parse parser "(unknown)"
 
 shouldHave x p y = (fmap p x) `shouldBe` (return y)
 
 
-main :: IO ()
-main = hspec $ do
+lineParserSpec :: Spec
+lineParserSpec =
   describe "hodor.todo line" $ do
     describe "parses done items" $ do
       let input = "x 2013-10-12 2013-09-20 A done task +some-project"
@@ -93,6 +67,9 @@ main = hspec $ do
       it "can be described" $ do
         shouldHave parsed unparse input
 
+
+fileParserSpec :: Spec
+fileParserSpec =
   describe "hodor.todo file" $ do
     describe "empty file" $ do
       let input = ""
@@ -112,44 +89,8 @@ main = hspec $ do
             output = parseTodoFile "test-todo" input
         fmap listItems output `shouldBe` fmap (\x -> [(1, x)]) (testParse todoTxtLine input)
 
-  describe "mark as done" $ do
-    let someDay = fromGregorian 1982 12 25
-    describe "when there are no todos" $ do
-      let emptyFile = makeTodoFile "empty" []
-      it "reports no such task" $ do
-        snd (doItems someDay emptyFile [2]) `shouldBe` [NoSuchTask 2]
-      it "reports no such task for all given tasks" $ do
-        snd (doItems someDay emptyFile [2, 3]) `shouldBe` [NoSuchTask 2, NoSuchTask 3]
-      it "doesn't create new tasks" $ do
-        (listItems $ fst (doItems someDay emptyFile [2, 3])) `shouldBe` []
 
-    describe "with todos" $ do
-      let sampleTodoText = unlines [
-            "x 2013-10-12 2013-09-20 A done task +some-project",
-            "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home\n",
-            "2013-09-21 Email John arranging time to catch up @online +some-project"]
-          sampleTodo = case parseTodoFile "test-todo" sampleTodoText of
-            Left e -> error (show e)
-            Right r -> r
-      it "reports that it marks item as done" $ do
-        let index = 2
-            originalItem = unsafeGetItem sampleTodo index
-            (_, events) = doItems someDay sampleTodo [index]
-        events `shouldBe` [TaskChanged Done index originalItem originalItem { dateCompleted = Just someDay }]
-      it "marks the item as done" $ do
-        let index = 2
-            originalItem = unsafeGetItem sampleTodo index
-            todoWriter = doItems someDay sampleTodo [index]
-        unsafeGetItem (fst todoWriter) index `shouldBe` originalItem { dateCompleted = Just someDay }
-
-  describe "priorities" $ do
-    describe "ordering" $ do
-      it "ranks A above B" $ do
-        unsafeMakePriority 'A' < unsafeMakePriority 'B' `shouldBe` True
-        unsafeMakePriority 'A' >= unsafeMakePriority 'B' `shouldBe` False
-      it "ranks A above D" $ do
-        unsafeMakePriority 'A' < unsafeMakePriority 'D' `shouldBe` True
-        unsafeMakePriority 'A' >= unsafeMakePriority 'D' `shouldBe` False
-      it "ranks any priority above none" $ do
-        unsafeMakePriority 'A' < noPriority `shouldBe` True
-        unsafeMakePriority 'Z' < noPriority `shouldBe` True
+spec :: Spec
+spec = describe "Parser" $ do
+  lineParserSpec
+  fileParserSpec

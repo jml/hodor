@@ -24,7 +24,7 @@ executable hodor
   default-language:    Haskell2010
 
 test-suite tests
-  main-is: tests/AllTests.hs
+  main-is: Tests.hs
   type: exitcode-stdio-1.0
   build-depends: base, hspec, time, parsec, mtl, containers
   default-language: Haskell2010
