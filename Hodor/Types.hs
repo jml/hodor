@@ -165,7 +165,7 @@ numItems = S.length . todoFileItemsV
 
 
 -- XXX: NumberedTodoItem
--- TODO: UNTESTED: NumberedTodoItem
+-- TODO: UNTESTED: filterItems
 filterItems :: (TodoItem -> Bool) -> TodoFile -> [(Int, TodoItem)]
 filterItems p = filter (p . snd) . listItems
 
