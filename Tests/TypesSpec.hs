@@ -12,11 +12,11 @@ import Hodor.Types (
   listItems,
   makeTodoFile,
   noPriority,
-  Priority(Pri),
   TaskAction(..),
   TodoEvent(..),
   TodoFile,
-  unsafeGetItem
+  unsafeGetItem,
+  unsafeMakePriority
   )
 
 import Tests.Generators
@@ -64,10 +64,10 @@ spec = describe "Core operations on todos" $ do
   describe "priorities" $ do
     describe "x < y means x has higher priority than y" $ do
       prop "earlier characters have higher priority (A) < (Z)" $
-        forAll arbitraryPriority $ \(Pri a) ->
-        forAll arbitraryPriority $ \(Pri b) -> a < b ==> Pri a < Pri b
+        forAll arbitraryPriorityLetter $ \a ->
+        forAll arbitraryPriorityLetter $ \b -> a < b ==> unsafeMakePriority a < unsafeMakePriority b
       prop "later characters have lower priority (Z) > (A)" $
-        forAll arbitraryPriority $ \(Pri a) ->
-        forAll arbitraryPriority $ \(Pri b) -> a > b ==> Pri a > Pri b
+        forAll arbitraryPriorityLetter $ \a ->
+        forAll arbitraryPriorityLetter $ \b -> a > b ==> unsafeMakePriority a > unsafeMakePriority b
       prop "no priority is the lowest priority" $
         forAll arbitraryPriority $ \p -> p < noPriority

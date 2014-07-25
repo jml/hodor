@@ -9,8 +9,12 @@ import Test.QuickCheck
 import Hodor.Types
 
 
+arbitraryPriorityLetter :: Gen Char
+arbitraryPriorityLetter = choose ('A', 'Z')
+
+
 arbitraryPriority :: Gen Priority
-arbitraryPriority = liftM unsafeMakePriority $ choose ('A', 'Z')
+arbitraryPriority = liftM unsafeMakePriority arbitraryPriorityLetter
 
 
 instance Arbitrary Priority where
