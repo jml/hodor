@@ -1,21 +1,12 @@
 module Tests.FormatSpec (spec) where
 
-import Control.Monad (liftM)
 import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
 
 import Hodor.Format
 import Hodor.Types
-
-
-arbitraryPriority :: Gen Priority
-arbitraryPriority = liftM unsafeMakePriority $ choose ('A', 'Z')
-
-
-instance Arbitrary Priority where
-  arbitrary = frequency [(5, arbitraryPriority), (1, return noPriority)]
-
+import Tests.Generators
 
 
 spec :: Spec
