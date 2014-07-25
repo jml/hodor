@@ -231,32 +231,20 @@ _adjustItems :: TaskAction -> (TodoItem -> TodoItem) -> TodoFile -> [Int] -> Tod
 _adjustItems action = foldM . (_adjustItem action)
 
 
-_doItem :: Day -> TodoItem -> TodoItem
-_doItem day todo = markAsDone todo day
-
-
 doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [TodoEvent])
-doItems file day = runEvents . _adjustItems Done (_doItem day) file
-
-
-_undoItem :: TodoItem -> TodoItem
-_undoItem todo = markAsUndone todo
+doItems file day = runEvents . _adjustItems Done (flip markAsDone day) file
 
 
 undoItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
-undoItems file = runEvents . _adjustItems Undone _undoItem file
-
-
-_prioritize :: Priority -> TodoItem -> TodoItem
-_prioritize pri todo = prioritize todo pri
+undoItems file = runEvents . _adjustItems Undone markAsUndone file
 
 
 prioritizeItem :: Priority -> TodoFile -> Int -> (TodoFile, [TodoEvent])
-prioritizeItem p file = runEvents . _adjustItem Prioritized (_prioritize p) file
+prioritizeItem p file = runEvents . _adjustItem Prioritized (flip prioritize p) file
 
 
 deprioritizeItem :: TodoFile -> Int -> (TodoFile, [TodoEvent])
-deprioritizeItem file = runEvents . _adjustItem Deprioritized (_prioritize noPriority) file
+deprioritizeItem file = runEvents . _adjustItem Deprioritized (flip prioritize noPriority) file
 
 
 -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
