@@ -1,5 +1,6 @@
 module Tests.TypesSpec (spec) where
 
+import Data.Char (isAlpha, toUpper)
 import Data.Time (fromGregorian)
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
@@ -10,6 +11,7 @@ import Hodor.Types (
   dateCompleted,
   doItems,
   listItems,
+  makePriority,
   makeTodoFile,
   noPriority,
   TaskAction(..),
@@ -71,3 +73,13 @@ spec = describe "Core operations on todos" $ do
         forAll arbitraryPriorityLetter $ \b -> a > b ==> unsafeMakePriority a > unsafeMakePriority b
       prop "no priority is the lowest priority" $
         forAll arbitraryPriority $ \p -> p < noPriority
+
+    describe "makePriority" $ do
+      prop "converts lower-case" $
+        forAll (choose ('a', 'z')) $ \x -> makePriority x == makePriority (toUpper x)
+
+      prop "creates the same as unsafeMakePriority" $
+        forAll arbitraryPriorityLetter $ \x -> makePriority x == Just (unsafeMakePriority x)
+
+      prop "returns Nothing for non-priorities" $
+        \x -> not (isAlpha x) ==> makePriority x == Nothing
