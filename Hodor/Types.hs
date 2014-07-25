@@ -207,10 +207,6 @@ logEvent :: TodoEvent -> TodoEvents ()
 logEvent e = TodoEvents (tell (S.singleton e))
 
 
-event :: (a, TodoEvent) -> TodoEvents a
-event (a, w) = TodoEvents $ writer (a, S.singleton w)
-
-
 _getItem :: TodoFile -> Int -> TodoEvents (Maybe TodoItem)
 _getItem file i = do
   case getItem file i of
