@@ -254,10 +254,10 @@ replaceItem file i item =
 
 {- Turn todos back into strings. -}
 
--- TODO: UNTESTED: all unparse logic
-
 -- XXX: Would like to move this to a separate module, but since 'description'
 -- depends on unparse I don't know how to do that sanely.
+
+-- XXX: This doesn't need to be a typeclass really. It just spares us thinking up names.
 
 class Unparse a where
   unparse :: a -> String

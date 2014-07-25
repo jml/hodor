@@ -56,3 +56,7 @@ instance Arbitrary TodoItem where
     case parseTodoLine line of
       Left e -> error (show e)
       Right r -> return r
+
+
+instance Arbitrary TodoFile where
+  arbitrary = liftM (makeTodoFile "arbitrary-file") (listOf arbitrary)

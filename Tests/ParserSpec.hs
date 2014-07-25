@@ -98,11 +98,13 @@ unparseSpec = describe "unparsing todo items" $ do
       unparse noPriority `shouldBe` ""
     prop "priority is '(A) '" $
       forAll arbitraryPriorityLetter $ \x -> unparse (unsafeMakePriority x) == '(':x:')':' ':[]
-  describe "reverses parsing" $ do
+  describe "reverses parsing for lines" $ do
     prop "parse then unparse" $
       forAll arbitraryTodoLines $ \x -> Right x == fmap unparse (parseTodoLine x)
     prop "unparse then parse" $
       \x -> parseTodoLine (unparse x) == Right x
+  prop "reverses parsing for files" $
+    \x -> parseTodoFile (todoFileName x) (unparse x) == Right x
 
 
 spec :: Spec
