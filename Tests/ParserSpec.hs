@@ -5,21 +5,15 @@ import Data.Time (fromGregorian)
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck hiding (output)
-import Text.Parsec (parse)
 
-import Hodor.Functional (onLeft)
 import Hodor.Parser (
-  ParseError(ParseError),
   parseTodoFile,
-  todoTxtLine,
+  parseTodoLine,
   )
 import Hodor.Types
 
 import Tests.Generators
 
-
-parseTodoLine :: String -> Either ParseError TodoItem
-parseTodoLine = onLeft ParseError . parse todoTxtLine "(line)"
 
 shouldHave :: (Monad m, Show (m b), Eq (m b)) => m a -> (a -> b) -> b -> Expectation
 shouldHave x p y = (liftM p x) `shouldBe` (return y)
@@ -104,6 +98,11 @@ unparseSpec = describe "unparsing todo items" $ do
       unparse noPriority `shouldBe` ""
     prop "priority is '(A) '" $
       forAll arbitraryPriorityLetter $ \x -> unparse (unsafeMakePriority x) == '(':x:')':' ':[]
+  describe "reverses parsing" $ do
+    prop "parse then unparse" $
+      forAll arbitraryTodoLines $ \x -> Right x == fmap unparse (parseTodoLine x)
+    prop "unparse then parse" $
+      \x -> parseTodoLine (unparse x) == Right x
 
 
 spec :: Spec

@@ -1,6 +1,7 @@
 module Hodor.Parser (
-  ParseError(ParseError),
+  ParseError,
   parseTodoFile,
+  parseTodoLine,
   parseTodoTxt,
   todoTxtFile,
   todoTxtLine
@@ -44,6 +45,10 @@ parseTodoFile filename contents =
 
 parseTodoTxt :: FilePath -> String -> Either ParseError [TodoItem]
 parseTodoTxt f = onLeft ParseError . parse todoTxtFile f
+
+
+parseTodoLine :: String -> Either ParseError TodoItem
+parseTodoLine = onLeft ParseError . parse todoTxtLine "(line)"
 
 
 todoTxtFile :: Parser [TodoItem]
