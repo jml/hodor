@@ -1,10 +1,21 @@
 module Tests.FormatSpec (spec) where
 
+import Control.Monad (liftM)
+import Test.QuickCheck
 import Test.Hspec
-import Test.Hspec.QuickCheck
+import Test.Hspec.QuickCheck (prop)
 
 import Hodor.Format
 import Hodor.Types
+
+
+arbitraryPriority :: Gen Priority
+arbitraryPriority = liftM unsafeMakePriority $ choose ('A', 'Z')
+
+
+instance Arbitrary Priority where
+  arbitrary = frequency [(5, arbitraryPriority), (1, return noPriority)]
+
 
 
 spec :: Spec
@@ -14,5 +25,5 @@ spec = describe "Formatting user output" $ do
       \x -> appMessage x == appName ++ ": " ++ x
   describe "format" $ do
     describe "priority" $ do
-      it "shows priorities as (N)" $ format (unsafeMakePriority 'A') `shouldBe` "(A)"
-      it "shows no priority as warning message" $ format noPriority `shouldBe` "<<no priority>>"
+      prop "shows priorities as (N)" $
+        forAll arbitraryPriority (\p@(Pri c) -> format p == '(':c:')':[])

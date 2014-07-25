@@ -26,5 +26,5 @@ executable hodor
 test-suite tests
   main-is: Tests.hs
   type: exitcode-stdio-1.0
-  build-depends: base, hspec, time, parsec, mtl, containers
+  build-depends: base, hspec, time, parsec, mtl, containers, QuickCheck
   default-language: Haskell2010
