@@ -112,13 +112,8 @@ data TodoEvent =
 
 data TaskAction =
   Done |
-  AlreadyDone |
   Undone |
-  AlreadyNotDone |
   Prioritized |
-  AlreadyPrioritized |
-  ChangedPriority Priority |
-  AlreadyDeprioritized |
   Deprioritized
   deriving (Show, Eq)
 
@@ -242,7 +237,7 @@ _adjustItems = foldM . _adjustItem
 _doItem :: Day -> Int -> TodoItem -> TodoEvents TodoItem
 _doItem day i todo = event $
   if isDone todo
-  then (todo, TaskChanged AlreadyDone i todo todo)
+  then (todo, TaskChanged Done i todo todo)
   else (newTodo, TaskChanged Done i todo newTodo)
   where newTodo = markAsDone todo day
 
