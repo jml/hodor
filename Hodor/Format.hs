@@ -22,8 +22,8 @@ instance Formattable Priority where
 
 instance Formattable TodoEvent where
   format (NoSuchTask i) = appMessage $ printf "No task %d\n" i
-  format (TaskChanged e i _ t) =
-    unlines [formatTodo i t, appMessage $ formatEvent' e i t]
+  format (TaskChanged e i o t) =
+    unlines [formatTodo i t, appMessage $ formatEvent' e i o t]
 
 
 -- XXX: NumberedTodoItem
@@ -31,13 +31,13 @@ formatTodo :: Int -> TodoItem -> String
 formatTodo i t = printf "%02d %s" i (unparse t)
 
 
-formatEvent' :: TaskAction -> Int -> TodoItem -> String
-formatEvent' Done i _ = printf "%d marked as done." i
-formatEvent' AlreadyDone i _ = printf "%d is already marked done." i
-formatEvent' Undone i _ = printf "%d no longer marked as done." i
-formatEvent' AlreadyNotDone i _ = printf "%d was already not marked done." i
-formatEvent' Prioritized i t = printf "%d prioritized %s." i (format (priority t))
-formatEvent' AlreadyPrioritized i t = printf "%d already prioritized %s." i (format (priority t))
-formatEvent' (ChangedPriority p) i t = printf "%d re-prioritized from %s to %s." i (format p) (format (priority t))
-formatEvent' Deprioritized i _ = printf "%d deprioritized." i
-formatEvent' AlreadyDeprioritized i _ = printf "%d is not prioritized." i
+formatEvent' :: TaskAction -> Int -> TodoItem -> TodoItem -> String
+formatEvent' Done i _ _ = printf "%d marked as done." i
+formatEvent' AlreadyDone i _ _ = printf "%d is already marked done." i
+formatEvent' Undone i _ _ = printf "%d no longer marked as done." i
+formatEvent' AlreadyNotDone i _ _ = printf "%d was already not marked done." i
+formatEvent' Prioritized i t _ = printf "%d prioritized %s." i (format (priority t))
+formatEvent' AlreadyPrioritized i t _ = printf "%d already prioritized %s." i (format (priority t))
+formatEvent' (ChangedPriority p) i t _ = printf "%d re-prioritized from %s to %s." i (format p) (format (priority t))
+formatEvent' Deprioritized i _ _ = printf "%d deprioritized." i
+formatEvent' AlreadyDeprioritized i _ _ = printf "%d is not prioritized." i
