@@ -2,6 +2,8 @@ module Tests.ParserSpec where
 
 import Data.Time (fromGregorian)
 import Test.Hspec
+import Test.Hspec.QuickCheck (prop)
+import Test.QuickCheck hiding (output)
 import Text.Parsec (parse)
 
 import Hodor.Functional (onLeft)
@@ -11,6 +13,8 @@ import Hodor.Parser (
   todoTxtLine,
   )
 import Hodor.Types
+
+import Tests.Generators
 
 
 testParse parser = onLeft ParseError . parse parser "(unknown)"
@@ -90,7 +94,17 @@ fileParserSpec =
         fmap listItems output `shouldBe` fmap (\x -> [(1, x)]) (testParse todoTxtLine input)
 
 
+unparseSpec :: Spec
+unparseSpec = describe "unparsing todo items" $ do
+  describe "priorities" $ do
+    it "no priority is empty string" $
+      unparse noPriority `shouldBe` ""
+    prop "priority is '(A) '" $
+      forAll arbitraryPriorityLetter $ \x -> unparse (unsafeMakePriority x) == '(':x:')':' ':[]
+
+
 spec :: Spec
 spec = describe "Parser" $ do
   lineParserSpec
   fileParserSpec
+  unparseSpec
