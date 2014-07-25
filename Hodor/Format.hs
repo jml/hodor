@@ -45,7 +45,7 @@ formatEvent' Prioritized i o t =
   then if oldPriority == newPriority
        then printf "%d already prioritized %s." i (format oldPriority)
        else printf "%d re-prioritized from %s to %s." i (format oldPriority) (format newPriority)
-  else printf "%d prioritized %s." i (format oldPriority)
+  else printf "%d prioritized %s." i (format newPriority)
   where oldPriority = priority o
         newPriority = priority t
 formatEvent' AlreadyPrioritized i o _ = printf "%d already prioritized %s." i (format (priority o))

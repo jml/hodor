@@ -254,7 +254,7 @@ doItems file day = runEvents . _adjustItems (_doItem day) file
 _undoItem :: Int -> TodoItem -> TodoEvents TodoItem
 _undoItem i todo = event $
   if not (isDone todo)
-  then (todo, TaskChanged AlreadyNotDone i todo todo)
+  then (todo, TaskChanged Undone i todo todo)
   else (newTodo, TaskChanged Undone i todo newTodo)
   where newTodo = markAsUndone todo
 
@@ -268,12 +268,12 @@ _prioritize pri@(Pri _) i todo = event $
   case (priority todo) of
     NoPri -> (newTodo, TaskChanged Prioritized i todo newTodo)
     old   -> if (pri == old)
-             then (todo, TaskChanged AlreadyPrioritized i todo todo)
-             else (newTodo, TaskChanged (ChangedPriority old) i todo newTodo)
+             then (todo, TaskChanged Prioritized i todo todo)
+             else (newTodo, TaskChanged Prioritized i todo newTodo)
   where newTodo = prioritize todo pri
 _prioritize NoPri i todo = event $
   case (priority todo) of
-    NoPri -> (todo, TaskChanged AlreadyDeprioritized i todo todo)
+    NoPri -> (todo, TaskChanged Deprioritized i todo todo)
     _     -> (newTodo, TaskChanged Deprioritized i todo newTodo)
     where newTodo = prioritize todo NoPri
 
