@@ -18,7 +18,7 @@ import Hodor.Types (
 
 
 spec :: Spec
-spec = do
+spec = describe "Core operations on todos" $ do
   describe "mark as done" $ do
     let someDay = fromGregorian 1982 12 25
     describe "when there are no todos" $ do
