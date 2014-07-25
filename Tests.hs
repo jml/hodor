@@ -19,9 +19,8 @@ import Hodor.Types (
 import qualified Tests.ParserSpec
 
 
-
-main :: IO ()
-main = hspec $ do
+spec :: Spec
+spec = do
   Tests.ParserSpec.spec
   describe "mark as done" $ do
     let someDay = fromGregorian 1982 12 25
@@ -64,3 +63,7 @@ main = hspec $ do
       it "ranks any priority above none" $ do
         unsafeMakePriority 'A' < noPriority `shouldBe` True
         unsafeMakePriority 'Z' < noPriority `shouldBe` True
+
+
+main :: IO ()
+main = hspec spec
