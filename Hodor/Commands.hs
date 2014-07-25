@@ -43,6 +43,7 @@ import Hodor.Types (
   hasPriority,
   filterItems,
   makePriority,
+  noPriority,
   numItems,
   Priority,
   prioritizeItem,
@@ -133,6 +134,14 @@ cmdPrioritize (i:p:[]) = do
   replaceTodoFile newTodoFile
   reportEvents events
 cmdPrioritize _        = throwError $ strMsg "Expect ITEM# PRIORITY"
+
+
+cmdDeprioritize :: HodorCommand
+cmdDeprioritize (i:[]) = do
+  (newTodoFile, events) <- liftM (prioritizeItem noPriority) loadTodoFile `ap` getItem i
+  replaceTodoFile newTodoFile
+  reportEvents events
+cmdDeprioritize _        = throwError $ strMsg "Expect ITEM#"
 
 
 cmdListContexts :: HodorCommand

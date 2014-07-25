@@ -117,7 +117,9 @@ data TaskAction =
   AlreadyNotDone |
   Prioritized |
   AlreadyPrioritized |
-  ChangedPriority Priority
+  ChangedPriority Priority |
+  AlreadyDeprioritized |
+  Deprioritized
   deriving (Show, Eq)
 
 
@@ -269,7 +271,11 @@ _prioritize pri@(Pri _) i todo = event $
              then (todo, TaskChanged i todo AlreadyPrioritized)
              else (newTodo, TaskChanged i newTodo (ChangedPriority old))
   where newTodo = prioritize todo pri
-_prioritize _ _ _ = error "Do not support deprioritization"
+_prioritize NoPri i todo = event $
+  case (priority todo) of
+    NoPri -> (todo, TaskChanged i todo AlreadyDeprioritized)
+    _     -> (newTodo, TaskChanged i newTodo Deprioritized)
+    where newTodo = prioritize todo NoPri
 
 
 prioritizeItem :: Priority -> TodoFile -> Int -> (TodoFile, [TodoEvent])

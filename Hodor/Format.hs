@@ -39,3 +39,5 @@ formatEvent' AlreadyNotDone i _ = printf "%d was already not marked done." i
 formatEvent' Prioritized i t = printf "%d prioritized %s." i (format (priority t))
 formatEvent' AlreadyPrioritized i t = printf "%d already prioritized %s." i (format (priority t))
 formatEvent' (ChangedPriority p) i t = printf "%d re-prioritized from %s to %s." i (format p) (format (priority t))
+formatEvent' Deprioritized i _ = printf "%d deprioritized." i
+formatEvent' AlreadyDeprioritized i _ = printf "%d is not prioritized." i

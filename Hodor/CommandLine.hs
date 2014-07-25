@@ -12,6 +12,7 @@ import Hodor.Commands (
   HodorCommand,
   cmdAdd,
   cmdArchive,
+  cmdDeprioritize,
   cmdList,
   cmdListContexts,
   cmdListPriority,
@@ -78,6 +79,8 @@ commands = M.fromList [
   , ("undo", cmdUndo)
   , ("pri", cmdPrioritize)
   , ("p", cmdPrioritize)
+  , ("depri", cmdDeprioritize)
+  , ("dp", cmdDeprioritize)
   ]
 
 
