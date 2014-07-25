@@ -216,39 +216,39 @@ _getItem file i = do
     Just x -> return (Just x)
 
 
-_adjustItem :: TaskAction -> (Int -> TodoItem -> TodoItem) -> TodoFile -> Int -> TodoEvents TodoFile
+_adjustItem :: TaskAction -> (TodoItem -> TodoItem) -> TodoFile -> Int -> TodoEvents TodoFile
 _adjustItem action f file i = do
   item <- _getItem file i
   case item of
     Nothing -> return file
     Just todo -> do
-      newTodo <- return $ f i todo
+      newTodo <- return $ f todo
       logEvent (TaskChanged action i todo newTodo)
       return (replaceItem file i newTodo)
 
 
-_adjustItems :: TaskAction -> (Int -> TodoItem -> TodoItem) -> TodoFile -> [Int] -> TodoEvents TodoFile
+_adjustItems :: TaskAction -> (TodoItem -> TodoItem) -> TodoFile -> [Int] -> TodoEvents TodoFile
 _adjustItems action = foldM . (_adjustItem action)
 
 
-_doItem :: Day -> Int -> TodoItem -> TodoItem
-_doItem day _ todo = markAsDone todo day
+_doItem :: Day -> TodoItem -> TodoItem
+_doItem day todo = markAsDone todo day
 
 
 doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [TodoEvent])
 doItems file day = runEvents . _adjustItems Done (_doItem day) file
 
 
-_undoItem :: Int -> TodoItem -> TodoItem
-_undoItem _ todo = markAsUndone todo
+_undoItem :: TodoItem -> TodoItem
+_undoItem todo = markAsUndone todo
 
 
 undoItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
 undoItems file = runEvents . _adjustItems Undone _undoItem file
 
 
-_prioritize :: Priority -> Int -> TodoItem -> TodoItem
-_prioritize pri _ todo = prioritize todo pri
+_prioritize :: Priority -> TodoItem -> TodoItem
+_prioritize pri todo = prioritize todo pri
 
 
 prioritizeItem :: Priority -> TodoFile -> Int -> (TodoFile, [TodoEvent])
