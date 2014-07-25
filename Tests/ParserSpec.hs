@@ -17,7 +17,8 @@ import Hodor.Types
 import Tests.Generators
 
 
-testParse parser = onLeft ParseError . parse parser "(unknown)"
+parseTodoLine :: String -> Either ParseError TodoItem
+parseTodoLine = onLeft ParseError . parse todoTxtLine "(line)"
 
 shouldHave x p y = (fmap p x) `shouldBe` (return y)
 
@@ -27,7 +28,7 @@ lineParserSpec =
   describe "hodor.todo line" $ do
     describe "parses done items" $ do
       let input = "x 2013-10-12 2013-09-20 A done task +some-project"
-          parsed = testParse todoTxtLine input
+          parsed = parseTodoLine input
       it "extracts date completed" $ do
         shouldHave parsed dateCompleted (Just (fromGregorian 2013 10 12))
       it "extracts date created" $ do
@@ -41,7 +42,7 @@ lineParserSpec =
 
     describe "parses incomplete items" $ do
       let input = "2013-09-21 Email John arranging time to catch up @online +some-project"
-          parsed = testParse todoTxtLine input
+          parsed = parseTodoLine input
       it "extracts date created" $ do
         shouldHave parsed dateCreated (Just (fromGregorian 2013 9 21))
       it "extracts projects" $ do
@@ -53,7 +54,7 @@ lineParserSpec =
 
     describe "parses complicated incomplete items" $ do
       let input = "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home"
-          parsed = testParse todoTxtLine input
+          parsed = parseTodoLine input
       it "extracts date created" $ do
         shouldHave parsed dateCreated (Just (fromGregorian 2013 9 27))
       it "extracts projects" $ do
@@ -67,7 +68,7 @@ lineParserSpec =
 
     describe "simple line" $ do
       let input = "Do a thing"
-          parsed = testParse todoTxtLine input
+          parsed = parseTodoLine input
       it "can be described" $ do
         shouldHave parsed unparse input
 
@@ -91,7 +92,7 @@ fileParserSpec =
       it "is parsed" $ do
         let input = "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home\n"
             output = parseTodoFile "test-todo" input
-        fmap listItems output `shouldBe` fmap (\x -> [(1, x)]) (testParse todoTxtLine input)
+        fmap listItems output `shouldBe` fmap (\x -> [(1, x)]) (parseTodoLine input)
 
 
 unparseSpec :: Spec
