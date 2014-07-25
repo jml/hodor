@@ -220,51 +220,47 @@ _getItem file i = do
     Just x -> return (Just x)
 
 
-_adjustItem :: (Int -> TodoItem -> TodoEvents TodoItem) -> TodoFile -> Int -> TodoEvents TodoFile
-_adjustItem f file i = do
+_adjustItem :: TaskAction -> (Int -> TodoItem -> TodoItem) -> TodoFile -> Int -> TodoEvents TodoFile
+_adjustItem action f file i = do
   item <- _getItem file i
   case item of
     Nothing -> return file
     Just todo -> do
-      newTodo <- f i todo
+      newTodo <- return $ f i todo
+      logEvent (TaskChanged action i todo newTodo)
       return (replaceItem file i newTodo)
 
 
-_adjustItems :: (Int -> TodoItem -> TodoEvents TodoItem) -> TodoFile -> [Int] -> TodoEvents TodoFile
-_adjustItems = foldM . _adjustItem
+_adjustItems :: TaskAction -> (Int -> TodoItem -> TodoItem) -> TodoFile -> [Int] -> TodoEvents TodoFile
+_adjustItems action = foldM . (_adjustItem action)
 
 
-_doItem :: Day -> Int -> TodoItem -> TodoEvents TodoItem
-_doItem day i todo = event $
-  (newTodo, TaskChanged Done i todo newTodo)
-  where newTodo = markAsDone todo day
+_doItem :: Day -> Int -> TodoItem -> TodoItem
+_doItem day _ todo = markAsDone todo day
 
 
 doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [TodoEvent])
-doItems file day = runEvents . _adjustItems (_doItem day) file
+doItems file day = runEvents . _adjustItems Done (_doItem day) file
 
 
-_undoItem :: Int -> TodoItem -> TodoEvents TodoItem
-_undoItem i todo = event $
-  (newTodo, TaskChanged Undone i todo newTodo)
-  where newTodo = markAsUndone todo
+_undoItem :: Int -> TodoItem -> TodoItem
+_undoItem _ todo = markAsUndone todo
 
 
 undoItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
-undoItems file = runEvents . _adjustItems _undoItem file
+undoItems file = runEvents . _adjustItems Undone _undoItem file
 
 
-_prioritize :: Priority -> Int -> TodoItem -> TodoEvents TodoItem
-_prioritize pri@(Pri _) i todo = event $
-  (newTodo, TaskChanged Prioritized i todo newTodo)
-  where newTodo = prioritize todo pri
-_prioritize NoPri i todo = event $
-  (newTodo, TaskChanged Deprioritized i todo newTodo)
-  where newTodo = prioritize todo NoPri
+_prioritize :: Priority -> Int -> TodoItem -> TodoItem
+_prioritize pri _ todo = prioritize todo pri
 
 
 prioritizeItem :: Priority -> TodoFile -> Int -> (TodoFile, [TodoEvent])
-prioritizeItem p file = runEvents . _adjustItem (_prioritize p) file
+prioritizeItem p file = runEvents . _adjustItem Prioritized (_prioritize p) file
+
+
+deprioritizeItem :: TodoFile -> Int -> (TodoFile, [TodoEvent])
+deprioritizeItem file = runEvents . _adjustItem Deprioritized (_prioritize noPriority) file
 
 
 -- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
