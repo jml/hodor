@@ -42,19 +42,12 @@ isPriority (Pri _) = True
 isPriority _       = False
 
 
-data Project = Project String deriving (Eq, Ord)
+data Project = Project String deriving (Eq, Ord, Show)
 
-instance Show Project where
-  show (Project p) = '+':p
-
-
-data Context = Context String deriving (Eq, Ord)
-
-instance Show Context where
-  show (Context c) = '@':c
-
+data Context = Context String deriving (Eq, Ord, Show)
 
 data Token = Bareword String | ProjectToken String | ContextToken String deriving (Eq, Ord, Show)
+
 
 data TodoItem = TodoItem {
   dateCompleted :: Maybe Day,
@@ -62,6 +55,7 @@ data TodoItem = TodoItem {
   dateCreated :: Maybe Day,
   tokens :: [Token]
 } deriving (Show, Eq, Ord)
+
 
 -- XXX: The 'Ord' haskell picks isn't the one todo uses. Not sure if that
 -- matters.
@@ -103,21 +97,6 @@ prioritize :: TodoItem -> Priority -> TodoItem
 prioritize item p = item { priority = p }
 
 
--- XXX: NumberedTodoItem
-data TodoEvent =
-  NoSuchTask Int |
-  TaskChanged TaskAction Int TodoItem TodoItem
-  deriving (Show, Eq)
-
-
-data TaskAction =
-  Done |
-  Undone |
-  Prioritized |
-  Deprioritized
-  deriving (Show, Eq)
-
-
 -- XXX: Could make this a NamedList type class or something, implement
 -- functor, foldable & traversable, and then make a specific instance
 -- (newtype?) for todo.
@@ -137,37 +116,20 @@ makeTodoFile name items = TodoFile { todoFileName = name,
                                      todoFileItemsV = S.fromList items }
 
 
--- TODO: UNTESTED: updateTodoFile
-updateTodoFile :: TodoFile -> [TodoItem] -> TodoFile
-updateTodoFile old = makeTodoFile (todoFileName old)
-
-
 -- XXX: NumberedTodoItem
 listItems :: TodoFile -> [(Int, TodoItem)]
 listItems = zip [1..] . toList . todoFileItemsV
-
-
-allItems :: TodoFile -> S.Seq TodoItem
-allItems = todoFileItemsV
-
-
-allContexts :: TodoFile -> [Context]
-allContexts = nub . sort . concatMap contexts . todoFileItemsV
-
-
-allProjects :: TodoFile -> [Project]
-allProjects = nub . sort . concatMap projects . todoFileItemsV
-
-
--- TODO: UNTESTED: numItems
-numItems :: TodoFile -> Int
-numItems = S.length . todoFileItemsV
 
 
 -- XXX: NumberedTodoItem
 -- TODO: UNTESTED: filterItems
 filterItems :: (TodoItem -> Bool) -> TodoFile -> [(Int, TodoItem)]
 filterItems p = filter (p . snd) . listItems
+
+
+-- TODO: UNTESTED: numItems
+numItems :: TodoFile -> Int
+numItems = S.length . todoFileItemsV
 
 
 -- TODO: UNTESTED: getItem
@@ -186,6 +148,20 @@ unsafeGetItem file i =
     Nothing -> error $ "No such item: " ++ (show i)
 
 
+-- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
+replaceItem :: TodoFile -> Int -> TodoItem -> TodoFile
+replaceItem file i item =
+  file { todoFileItemsV = S.update (i - 1) item (todoFileItemsV file) }
+
+
+allContexts :: TodoFile -> [Context]
+allContexts = nub . sort . concatMap contexts . todoFileItemsV
+
+
+allProjects :: TodoFile -> [Project]
+allProjects = nub . sort . concatMap projects . todoFileItemsV
+
+
 -- TODO: UNTESTED: archive
 archive :: TodoFile -> (TodoFile, [TodoItem])
 archive file =
@@ -195,23 +171,38 @@ archive file =
   in (newTodoFile, toList doneItems)
 
 
+-- XXX: NumberedTodoItem
+data TodoEvent =
+  NoSuchTask Int |
+  TaskChanged TaskAction Int TodoItem TodoItem
+  deriving (Show, Eq)
+
+
+data TaskAction =
+  Done |
+  Undone |
+  Prioritized |
+  Deprioritized
+  deriving (Show, Eq)
+
+
 newtype TodoEvents a = TodoEvents { getWriter :: Writer (S.Seq TodoEvent) a }
                        deriving (Monad)
 
 
-runEvents :: TodoEvents a -> (a, [TodoEvent])
-runEvents = second toList . runWriter . getWriter
+_runEvents :: TodoEvents a -> (a, [TodoEvent])
+_runEvents = second toList . runWriter . getWriter
 
 
-logEvent :: TodoEvent -> TodoEvents ()
-logEvent e = TodoEvents (tell (S.singleton e))
+_logEvent :: TodoEvent -> TodoEvents ()
+_logEvent e = TodoEvents (tell (S.singleton e))
 
 
 _getItem :: TodoFile -> Int -> TodoEvents (Maybe TodoItem)
 _getItem file i = do
   case getItem file i of
     Nothing -> do
-      logEvent $ NoSuchTask i
+      _logEvent $ NoSuchTask i
       return Nothing
     Just x -> return (Just x)
 
@@ -223,7 +214,7 @@ _adjustItem action f file i = do
     Nothing -> return file
     Just todo -> do
       newTodo <- return $ f todo
-      logEvent (TaskChanged action i todo newTodo)
+      _logEvent (TaskChanged action i todo newTodo)
       return (replaceItem file i newTodo)
 
 
@@ -232,25 +223,20 @@ _adjustItems action = foldM . (_adjustItem action)
 
 
 doItems :: Day -> TodoFile -> [Int] -> (TodoFile, [TodoEvent])
-doItems day file = runEvents . _adjustItems Done (flip markAsDone day) file
+doItems day file = _runEvents . _adjustItems Done (flip markAsDone day) file
 
 
 undoItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
-undoItems file = runEvents . _adjustItems Undone markAsUndone file
+undoItems file = _runEvents . _adjustItems Undone markAsUndone file
 
 
 prioritizeItem :: Priority -> TodoFile -> Int -> (TodoFile, [TodoEvent])
-prioritizeItem p file = runEvents . _adjustItem Prioritized (flip prioritize p) file
+prioritizeItem p file = _runEvents . _adjustItem Prioritized (flip prioritize p) file
 
 
 deprioritizeItem :: TodoFile -> Int -> (TodoFile, [TodoEvent])
-deprioritizeItem file = runEvents . _adjustItem Deprioritized (flip prioritize noPriority) file
+deprioritizeItem file = _runEvents . _adjustItem Deprioritized (flip prioritize noPriority) file
 
-
--- O(log(min(i,n-i))), i = ndx, n = length todoFileItems
-replaceItem :: TodoFile -> Int -> TodoItem -> TodoFile
-replaceItem file i item =
-  file { todoFileItemsV = S.update (i - 1) item (todoFileItemsV file) }
 
 {- Turn todos back into strings. -}
 
