@@ -1,6 +1,7 @@
 module Tests.FormatSpec (spec) where
 
 import Test.Hspec
+import Test.Hspec.QuickCheck
 
 import Hodor.Format
 
@@ -8,5 +9,5 @@ import Hodor.Format
 spec :: Spec
 spec = describe "Formatting user output" $ do
   describe "appMessage" $ do
-    it "returns a string prefixed by the appName" $ do
-      appMessage "hello" `shouldBe` appName ++ ": " ++ "hello"
+    prop "returns a string prefixed by the appName" $
+      \x -> appMessage x == appName ++ ": " ++ x
