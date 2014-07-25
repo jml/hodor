@@ -18,7 +18,8 @@ instance Formattable TodoItem where
   format = unparse
 
 instance Formattable Priority where
-  format = init . unparse
+  format x | isPriority x = init (unparse x)
+           | otherwise    = "<<no priority>>"
 
 instance Formattable TodoEvent where
   format (NoSuchTask i) = appMessage $ printf "No task %d\n" i
