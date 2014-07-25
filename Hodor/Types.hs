@@ -106,7 +106,7 @@ prioritize item p = item { priority = p }
 -- XXX: NumberedTodoItem
 data TodoEvent =
   NoSuchTask Int |
-  TaskChanged Int TodoItem TaskAction
+  TaskChanged TaskAction Int TodoItem
   deriving (Show, Eq)
 
 
@@ -242,8 +242,8 @@ _adjustItems = foldM . _adjustItem
 _doItem :: Day -> Int -> TodoItem -> TodoEvents TodoItem
 _doItem day i todo = event $
   if isDone todo
-  then (todo, TaskChanged i todo AlreadyDone)
-  else (newTodo, TaskChanged i newTodo Done)
+  then (todo, TaskChanged AlreadyDone i todo)
+  else (newTodo, TaskChanged Done i newTodo)
   where newTodo = markAsDone todo day
 
 
@@ -254,8 +254,8 @@ doItems file day = runEvents . _adjustItems (_doItem day) file
 _undoItem :: Int -> TodoItem -> TodoEvents TodoItem
 _undoItem i todo = event $
   if not (isDone todo)
-  then (todo, TaskChanged i todo AlreadyNotDone)
-  else (newTodo, TaskChanged i newTodo Undone)
+  then (todo, TaskChanged AlreadyNotDone i todo)
+  else (newTodo, TaskChanged Undone i newTodo)
   where newTodo = markAsUndone todo
 
 
@@ -266,15 +266,15 @@ undoItems file = runEvents . _adjustItems _undoItem file
 _prioritize :: Priority -> Int -> TodoItem -> TodoEvents TodoItem
 _prioritize pri@(Pri _) i todo = event $
   case (priority todo) of
-    NoPri -> (newTodo, TaskChanged i newTodo Prioritized)
+    NoPri -> (newTodo, TaskChanged Prioritized i newTodo)
     old   -> if (pri == old)
-             then (todo, TaskChanged i todo AlreadyPrioritized)
-             else (newTodo, TaskChanged i newTodo (ChangedPriority old))
+             then (todo, TaskChanged AlreadyPrioritized i todo)
+             else (newTodo, TaskChanged (ChangedPriority old) i newTodo)
   where newTodo = prioritize todo pri
 _prioritize NoPri i todo = event $
   case (priority todo) of
-    NoPri -> (todo, TaskChanged i todo AlreadyDeprioritized)
-    _     -> (newTodo, TaskChanged i newTodo Deprioritized)
+    NoPri -> (todo, TaskChanged AlreadyDeprioritized i todo)
+    _     -> (newTodo, TaskChanged Deprioritized i newTodo)
     where newTodo = prioritize todo NoPri
 
 

@@ -22,7 +22,7 @@ instance Formattable Priority where
 
 instance Formattable TodoEvent where
   format (NoSuchTask i) = appMessage $ printf "No task %d\n" i
-  format (TaskChanged i t e) =
+  format (TaskChanged e i t) =
     unlines [formatTodo i t, appMessage $ formatEvent' e i t]
 
 
