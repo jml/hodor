@@ -42,7 +42,8 @@ sampleTodoLines = [
   "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home",
   "2013-09-21 Email John arranging time to catch up @online +some-project",
   "Nothing to see here",
-  "(A) Do taxes"
+  "(A) Do taxes",
+  "x 2011-11-02 already done"
   ]
 
 arbitraryTodoLines :: Gen String
