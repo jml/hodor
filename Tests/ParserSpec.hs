@@ -1,5 +1,6 @@
 module Tests.ParserSpec where
 
+import Control.Monad (liftM)
 import Data.Time (fromGregorian)
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
@@ -20,7 +21,8 @@ import Tests.Generators
 parseTodoLine :: String -> Either ParseError TodoItem
 parseTodoLine = onLeft ParseError . parse todoTxtLine "(line)"
 
-shouldHave x p y = (fmap p x) `shouldBe` (return y)
+shouldHave :: (Monad m, Show (m b), Eq (m b)) => m a -> (a -> b) -> b -> Expectation
+shouldHave x p y = (liftM p x) `shouldBe` (return y)
 
 
 lineParserSpec :: Spec
