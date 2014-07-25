@@ -116,7 +116,7 @@ cmdArchive _ = do
 
 cmdMarkAsDone :: HodorCommand
 cmdMarkAsDone args = do
-  (newTodoFile, doneItems) <- liftM doItems loadTodoFile `ap` liftIO today `ap` getItems args
+  (newTodoFile, doneItems) <- liftM doItems (liftIO today) `ap` loadTodoFile `ap` getItems args
   replaceTodoFile newTodoFile
   reportEvents doneItems
 

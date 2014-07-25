@@ -117,11 +117,11 @@ main = hspec $ do
     describe "when there are no todos" $ do
       let emptyFile = makeTodoFile "empty" []
       it "reports no such task" $ do
-        snd (doItems emptyFile someDay [2]) `shouldBe` [NoSuchTask 2]
+        snd (doItems someDay emptyFile [2]) `shouldBe` [NoSuchTask 2]
       it "reports no such task for all given tasks" $ do
-        snd (doItems emptyFile someDay [2, 3]) `shouldBe` [NoSuchTask 2, NoSuchTask 3]
+        snd (doItems someDay emptyFile [2, 3]) `shouldBe` [NoSuchTask 2, NoSuchTask 3]
       it "doesn't create new tasks" $ do
-        (listItems $ fst (doItems emptyFile someDay [2, 3])) `shouldBe` []
+        (listItems $ fst (doItems someDay emptyFile [2, 3])) `shouldBe` []
 
     describe "with todos" $ do
       let sampleTodoText = unlines [
@@ -134,12 +134,12 @@ main = hspec $ do
       it "reports that it marks item as done" $ do
         let index = 2
             originalItem = unsafeGetItem sampleTodo index
-            (_, events) = doItems sampleTodo someDay [index]
+            (_, events) = doItems someDay sampleTodo [index]
         events `shouldBe` [TaskChanged Done index originalItem originalItem { dateCompleted = Just someDay }]
       it "marks the item as done" $ do
         let index = 2
             originalItem = unsafeGetItem sampleTodo index
-            todoWriter = doItems sampleTodo someDay [index]
+            todoWriter = doItems someDay sampleTodo [index]
         unsafeGetItem (fst todoWriter) index `shouldBe` originalItem { dateCompleted = Just someDay }
 
   describe "priorities" $ do

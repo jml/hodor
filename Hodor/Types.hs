@@ -231,8 +231,8 @@ _adjustItems :: TaskAction -> (TodoItem -> TodoItem) -> TodoFile -> [Int] -> Tod
 _adjustItems action = foldM . (_adjustItem action)
 
 
-doItems :: TodoFile -> Day -> [Int] -> (TodoFile, [TodoEvent])
-doItems file day = runEvents . _adjustItems Done (flip markAsDone day) file
+doItems :: Day -> TodoFile -> [Int] -> (TodoFile, [TodoEvent])
+doItems day file = runEvents . _adjustItems Done (flip markAsDone day) file
 
 
 undoItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
