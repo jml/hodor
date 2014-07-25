@@ -135,7 +135,7 @@ main = hspec $ do
         let index = 2
             originalItem = unsafeGetItem sampleTodo index
             (_, events) = doItems sampleTodo someDay [index]
-        events `shouldBe` [TaskChanged Done index originalItem { dateCompleted = Just someDay }]
+        events `shouldBe` [TaskChanged Done index originalItem originalItem { dateCompleted = Just someDay }]
       it "marks the item as done" $ do
         let index = 2
             originalItem = unsafeGetItem sampleTodo index
