@@ -75,15 +75,12 @@ contexts item = [ Context p | ContextToken p <- (tokens item) ]
 description :: TodoItem -> String
 description item = concatMap unparse (tokens item)
 
--- TODO: UNTESTED: isDone
 isDone :: TodoItem -> Bool
 isDone = isJust . dateCompleted
 
--- TODO: UNTESTED: hasPriority
 hasPriority :: TodoItem -> Bool
 hasPriority = isPriority . priority
 
--- TODO: UNTESTED: markAsDone
 markAsDone :: TodoItem -> Day -> TodoItem
 markAsDone item day | isDone item = item
                     | otherwise   = item { dateCompleted = Just day }

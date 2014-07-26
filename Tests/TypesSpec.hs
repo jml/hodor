@@ -10,10 +10,15 @@ import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
   dateCompleted,
   doItems,
+  isDone,
+  hasPriority,
   listItems,
   makePriority,
   makeTodoFile,
+  markAsDone,
+  markAsUndone,
   noPriority,
+  prioritize,
   TaskAction(..),
   TodoEvent(..),
   TodoFile,
@@ -83,3 +88,20 @@ spec = describe "Core operations on todos" $ do
 
       prop "returns Nothing for non-priorities" $
         \x -> not (isAlpha x) ==> makePriority x == Nothing
+
+  describe "marking items as done" $ do
+    prop "markAsDone implies isDone" $
+      \date item -> isDone (markAsDone date item)
+    prop "markAsDone sets date completed if not done" $
+      \date item -> not (isDone item) ==> dateCompleted (markAsDone item date) == Just date
+    prop "markAsDone leaves date completed if already done" $
+      \date item -> isDone item ==> dateCompleted (markAsDone item date) == (dateCompleted item)
+    prop "markAsUndone implies not done" $
+      not . isDone . markAsUndone
+
+  describe "setting priorities" $ do
+    prop "setting a priority shoes there *is* a priority" $
+      forAll arbitraryPriority $ \pri ->
+      \item -> hasPriority (prioritize item pri)
+    prop "setting no priority shows there is not a priority" $
+      \item -> not . hasPriority $ prioritize item noPriority
