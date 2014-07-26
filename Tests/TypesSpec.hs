@@ -173,3 +173,6 @@ spec = describe "Core operations on todos" $ do
       all isDone . snd . archive
     prop "returns precisely the done items" $
       \file -> snd (archive file) `shouldBe` filter isDone (allItems file)
+    prop "every item in return value" $
+      \file -> let (newFile, doneItems) = archive file in
+      allItems newFile ++ doneItems `shouldMatchList` allItems file
