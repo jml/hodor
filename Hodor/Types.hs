@@ -112,9 +112,12 @@ makeTodoFile name items = TodoFile { todoFileName = name,
                                      todoFileItemsV = S.fromList items }
 
 
+allItems :: TodoFile -> [TodoItem]
+allItems = toList . todoFileItemsV
+
 -- XXX: NumberedTodoItem
 listItems :: TodoFile -> [(Int, TodoItem)]
-listItems = zip [1..] . toList . todoFileItemsV
+listItems = zip [1..] . allItems
 
 
 -- XXX: NumberedTodoItem
@@ -158,7 +161,6 @@ allProjects :: TodoFile -> [Project]
 allProjects = nub . sort . concatMap projects . todoFileItemsV
 
 
--- TODO: UNTESTED: archive
 archive :: TodoFile -> (TodoFile, [TodoItem])
 archive file =
   let items = todoFileItemsV file

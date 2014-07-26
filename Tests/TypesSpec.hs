@@ -9,6 +9,7 @@ import Test.QuickCheck
 
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
+  allItems,
   archive,
   dateCompleted,
   doItems,
@@ -145,6 +146,9 @@ spec = describe "Core operations on todos" $ do
         \name items -> all (\(i, t) -> items !! (i - 1) == t) $ filterItems isDone (makeTodoFile name items)
       prop "is equivalent to listItems" $ do
         \file -> filterItems (const True) file == listItems file
+    describe "allItems" $ do
+      prop "is equivalent to listItems but without the indexes" $
+        \file -> allItems file == map snd (listItems file)
     describe "getItem" $ do
       prop "returns Nothing when out of range" $
         \name items i -> i < 1 || i > length items ==> getItem (makeTodoFile name items) i == Nothing
@@ -171,10 +175,10 @@ spec = describe "Core operations on todos" $ do
 
   describe "archive" $ do
     prop "strips all done items" $
-      all (not . isDone . snd) . listItems . fst . archive
+      all (not . isDone) . allItems . fst . archive
     prop "does not remove any not done items" $
-      \file -> [x | (_, x) <- listItems file, not (isDone x)] == map snd ((listItems . fst . archive) file)
+      \file -> filter (not . isDone) (allItems file) == (allItems . fst . archive) file
     prop "returns only done items" $
       all isDone . snd . archive
     prop "returns precisely the done items" $
-      \file -> [x | (_, x) <- listItems file, isDone x] == snd (archive file)
+      \file -> filter isDone (allItems file) == snd (archive file)
