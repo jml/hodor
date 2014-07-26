@@ -1,6 +1,7 @@
 module Tests.TypesSpec (spec) where
 
 import Data.Char (isAlpha, toUpper)
+import Data.List ((\\))
 import Data.Maybe (fromJust)
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
@@ -80,6 +81,23 @@ actionsSpec = describe "High-level operations on todos" $ do
     describe "no items given" $ do
       prop "leaves file unchanged and performs no actions" $
         \file day -> doItems day file [] `shouldBe` (file, [])
+
+    describe "for a mix of items" $ do
+      prop "has one event for each item given" $
+        \file day items -> (length $ snd $ doItems day file items) `shouldBe` length items
+
+      prop "marked all the valid items as done" $
+        \file day items -> let (newFile, _) = doItems day file items in
+        map (getItem newFile) items `shouldBe` map (fmap (flip markAsDone day) . getItem file) items
+
+      prop "leaves unmentioned items unchanged" $
+        \oldFile day items ->
+        let (newFile, _) = doItems day oldFile items
+            nonItems = [1..numItems oldFile] \\ items in
+        map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
+
+      prop "does not remove items from todo" $
+        \file day items -> (numItems $ fst $ doItems day file items) `shouldBe` numItems file
 
 
 spec :: Spec
