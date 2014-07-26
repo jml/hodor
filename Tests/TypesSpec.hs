@@ -15,6 +15,7 @@ import Hodor.Types (
   hasPriority,
   filterItems,
   getItem,
+  isEmpty,
   listItems,
   makePriority,
   makeTodoFile,
@@ -116,6 +117,9 @@ spec = describe "Core operations on todos" $ do
         \x -> numItems (makeTodoFile x []) == 0
       prop "shows the number of items" $
         \name items -> numItems (makeTodoFile name items) == length items
+    describe "isEmpty" $ do
+      prop "is equivalent to numItems is 0" $
+        \x -> (numItems x == 0) == isEmpty x
     describe "listItems" $ do
       prop "lists items with 1-based index" $
         \name items -> listItems (makeTodoFile name items) == zip [1..] items

@@ -126,6 +126,10 @@ numItems :: TodoFile -> Int
 numItems = S.length . todoFileItemsV
 
 
+isEmpty :: TodoFile -> Bool
+isEmpty = (==) 0 . numItems
+
+
 getItem :: TodoFile -> Int -> Maybe TodoItem
 getItem file i =
   if 1 <= i && i <= numItems file
