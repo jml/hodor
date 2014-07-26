@@ -7,7 +7,6 @@ import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
 
-import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
   allItems,
   archive,
@@ -40,17 +39,6 @@ import Tests.Generators
 emptyFile :: TodoFile
 emptyFile = makeTodoFile "empty" []
 
-sampleTodoText :: String
-sampleTodoText = unlines [
-  "x 2013-10-12 2013-09-20 A done task +some-project",
-  "(B) 2013-09-27 Wipe mould off bathroom ceiling +condensation @home\n",
-  "2013-09-21 Email John arranging time to catch up @online +some-project"]
-
-sampleTodo :: TodoFile
-sampleTodo = case parseTodoFile "test-todo" sampleTodoText of
-  Left e -> error (show e)
-  Right r -> r
-
 
 indexesOf :: TodoFile -> Gen Int
 indexesOf file = choose (1, numItems file)
@@ -75,17 +63,22 @@ actionsSpec = describe "High-level operations on todos" $ do
       it "doesn't create new tasks" $ do
         (listItems $ fst (doItems someDay emptyFile [2, 3])) `shouldBe` []
 
-    describe "with todos" $ do
-      it "reports that it marks item as done" $ do
-        let index = 2
-            originalItem = unsafeGetItem sampleTodo index
-            (_, events) = doItems someDay sampleTodo [index]
-        events `shouldBe` [TaskChanged Done index originalItem originalItem { dateCompleted = Just someDay }]
-      it "marks the item as done" $ do
-        let index = 2
-            originalItem = unsafeGetItem sampleTodo index
-            todoWriter = doItems someDay sampleTodo [index]
-        unsafeGetItem (fst todoWriter) index `shouldBe` originalItem { dateCompleted = Just someDay }
+    describe "for valid items" $ do
+      prop "marks the item as done" $
+        \day -> forAll todoFileIndexes $
+        \(file, index) -> getItem (fst $ doItems day file [index]) index ==
+                          fmap (flip markAsDone day) (getItem file index)
+      prop "reports that it marks item as done" $
+        \day -> forAll todoFileIndexes $
+        \(file, index) ->
+        let (newTodoFile, events) = doItems day file [index] in
+        events == [TaskChanged Done index (unsafeGetItem file index)
+                   (unsafeGetItem newTodoFile index)]
+
+
+    describe "no items given" $ do
+      prop "leaves file unchanged and performs no actions" $
+        \file day -> doItems day file [] == (file, [])
 
 
 spec :: Spec
