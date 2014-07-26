@@ -136,11 +136,15 @@ spec = describe "Core operations on todos" $ do
     describe "listItems" $ do
       prop "lists items with 1-based index" $
         \name items -> listItems (makeTodoFile name items) == zip [1..] items
+      prop "is consistent with numItems" $
+        \file -> length (listItems file) == numItems (file)
     describe "filterItems" $ do
       prop "includes only items that satisfy a predicate" $
         \name items -> all (isDone . snd) $ filterItems isDone (makeTodoFile name items)
       prop "refers to items by their index in the original list" $
         \name items -> all (\(i, t) -> items !! (i - 1) == t) $ filterItems isDone (makeTodoFile name items)
+      prop "is equivalent to listItems" $ do
+        \file -> filterItems (const True) file == listItems file
     describe "getItem" $ do
       prop "returns Nothing when out of range" $
         \name items i -> i < 1 || i > length items ==> getItem (makeTodoFile name items) i == Nothing
@@ -161,6 +165,9 @@ spec = describe "Core operations on todos" $ do
         let oldList = listItems file
             newList = listItems (replaceItem file i item) in
         newList == take (i - 1) oldList ++ [(i, item)] ++ drop i oldList
+      prop "does not alter the size of the todo file" $
+        \item -> forAll todoFileIndexes $ \(file, i) ->
+        numItems file == numItems (replaceItem file i item)
 
   describe "archive" $ do
     prop "strips all done items" $
