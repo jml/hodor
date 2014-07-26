@@ -49,6 +49,17 @@ sampleTodo = case parseTodoFile "test-todo" sampleTodoText of
   Right r -> r
 
 
+indexesOf :: TodoFile -> Gen Int
+indexesOf file = choose (1, numItems file)
+
+
+todoFileIndexes :: Gen (TodoFile, Int)
+todoFileIndexes = do
+  file <- nonEmptyTodoFile
+  index <- indexesOf file
+  return (file, index)
+
+
 spec :: Spec
 spec = describe "Core operations on todos" $ do
   describe "mark as done" $ do
@@ -136,9 +147,9 @@ spec = describe "Core operations on todos" $ do
         forAll (choose (1, length items)) $ \i ->
         getItem (makeTodoFile name items) i == Just (items !! (i - 1))
       prop "aligns with listItem" $
-        forAll nonEmptyTodoFile $ \file -> forAll (choose (1, numItems file)) $ \i ->
+        forAll todoFileIndexes $ \(file, i) ->
         [(i, fromJust (getItem file i))] == [(n, t) | (n, t) <- listItems file, i == n]
     describe "unsafeGetItem" $ do
       prop "returns the item when in range (1-based index)" $
-        forAll nonEmptyTodoFile $ \file -> forAll (choose (1, numItems file)) $ \i ->
+        forAll todoFileIndexes $ \(file, i) ->
         getItem file i == Just (unsafeGetItem file i)
