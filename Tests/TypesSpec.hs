@@ -42,6 +42,9 @@ emptyFile = makeTodoFile "empty" []
 indexesOf :: TodoFile -> Gen Int
 indexesOf file = choose (1, numItems file)
 
+invalidIndexesOf :: TodoFile -> Gen Int
+invalidIndexesOf file = arbitrary `suchThat` \i -> i < 1 || i > numItems file
+
 
 todoFileIndexes :: Gen (TodoFile, Int)
 todoFileIndexes = do
@@ -57,6 +60,11 @@ actionsSpec = describe "High-level operations on todos" $ do
       prop "leaves file unchanged and reports NoSuchTask for all given items" $
         \day items -> doItems day emptyFile items `shouldBe` (emptyFile, map NoSuchTask items)
 
+    describe "for invalid items" $ do
+      prop "leaves file unchanged and reports NoSuchTask for all given items" $
+        \day file -> forAll (listOf $ invalidIndexesOf file) $ \items ->
+        doItems day file items `shouldBe` (file, map NoSuchTask items)
+
     describe "for valid items" $ do
       prop "marks the item as done" $
         \day -> forAll todoFileIndexes $
@@ -68,7 +76,6 @@ actionsSpec = describe "High-level operations on todos" $ do
         let (newTodoFile, events) = doItems day file [index] in
         events `shouldBe` [TaskChanged Done index (unsafeGetItem file index)
                            (unsafeGetItem newTodoFile index)]
-
 
     describe "no items given" $ do
       prop "leaves file unchanged and performs no actions" $
