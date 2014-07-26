@@ -24,6 +24,7 @@ import Hodor.Types (
   noPriority,
   numItems,
   prioritize,
+  replaceItem,
   TaskAction(..),
   TodoEvent(..),
   TodoFile,
@@ -153,3 +154,9 @@ spec = describe "Core operations on todos" $ do
       prop "returns the item when in range (1-based index)" $
         forAll todoFileIndexes $ \(file, i) ->
         getItem file i == Just (unsafeGetItem file i)
+    describe "replaceItem" $ do
+      prop "swaps out the specified item" $
+        \item -> forAll todoFileIndexes $ \(file, i) ->
+        let oldList = listItems file
+            newList = listItems (replaceItem file i item) in
+        newList == take (i - 1) oldList ++ [(i, item)] ++ drop i oldList
