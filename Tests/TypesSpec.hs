@@ -1,6 +1,7 @@
 module Tests.TypesSpec (spec) where
 
 import Data.Char (isAlpha, toUpper)
+import Data.Maybe (fromJust)
 import Data.Time (fromGregorian)
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
@@ -12,12 +13,15 @@ import Hodor.Types (
   doItems,
   isDone,
   hasPriority,
+  filterItems,
+  getItem,
   listItems,
   makePriority,
   makeTodoFile,
   markAsDone,
   markAsUndone,
   noPriority,
+  numItems,
   prioritize,
   TaskAction(..),
   TodoEvent(..),
@@ -105,3 +109,32 @@ spec = describe "Core operations on todos" $ do
       \item -> hasPriority (prioritize item pri)
     prop "setting no priority shows there is not a priority" $
       \item -> not . hasPriority $ prioritize item noPriority
+
+  describe "todo files" $ do
+    describe "numItems" $ do
+      prop "shows zero when there are no items" $
+        \x -> numItems (makeTodoFile x []) == 0
+      prop "shows the number of items" $
+        \name items -> numItems (makeTodoFile name items) == length items
+    describe "listItems" $ do
+      prop "lists items with 1-based index" $
+        \name items -> listItems (makeTodoFile name items) == zip [1..] items
+    describe "filterItems" $ do
+      prop "includes only items that satisfy a predicate" $
+        \name items -> all (isDone . snd) $ filterItems isDone (makeTodoFile name items)
+      prop "refers to items by their index in the original list" $
+        \name items -> all (\(i, t) -> items !! (i - 1) == t) $ filterItems isDone (makeTodoFile name items)
+    describe "getItem" $ do
+      prop "returns Nothing when out of range" $
+        \name items i -> i < 1 || i > length items ==> getItem (makeTodoFile name items) i == Nothing
+      prop "returns the item when in range (1-based index)" $
+        \name -> forAll (listOf1 arbitrary) $ \items ->
+        forAll (choose (1, length items)) $ \i ->
+        getItem (makeTodoFile name items) i == Just (items !! (i - 1))
+      prop "aligns with listItem" $
+        \file -> numItems file > 0 ==> forAll (choose (1, numItems file)) $ \i ->
+        [(i, fromJust (getItem file i))] == [(n, t) | (n, t) <- listItems file, i == n]
+    describe "unsafeGetItem" $ do
+      prop "returns the item when in range (1-based index)" $
+        \file -> numItems file > 0 ==> forAll (choose (1, numItems file)) $ \i ->
+        getItem file i == Just (unsafeGetItem file i)

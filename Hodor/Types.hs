@@ -107,7 +107,6 @@ data TodoFile = TodoFile {
 } deriving (Show, Eq, Ord)
 
 
--- TODO: UNTESTED: makeTodoFile
 makeTodoFile :: String -> [TodoItem] -> TodoFile
 makeTodoFile name items = TodoFile { todoFileName = name,
                                      todoFileItemsV = S.fromList items }
@@ -119,17 +118,14 @@ listItems = zip [1..] . toList . todoFileItemsV
 
 
 -- XXX: NumberedTodoItem
--- TODO: UNTESTED: filterItems
 filterItems :: (TodoItem -> Bool) -> TodoFile -> [(Int, TodoItem)]
 filterItems p = filter (p . snd) . listItems
 
 
--- TODO: UNTESTED: numItems
 numItems :: TodoFile -> Int
 numItems = S.length . todoFileItemsV
 
 
--- TODO: UNTESTED: getItem
 getItem :: TodoFile -> Int -> Maybe TodoItem
 getItem file i =
   if 1 <= i && i <= numItems file
@@ -137,7 +133,6 @@ getItem file i =
   else Nothing
 
 
--- TODO: UNTESTED: unsafeGetItem
 unsafeGetItem :: TodoFile -> Int -> TodoItem
 unsafeGetItem file i =
   case getItem file i of
