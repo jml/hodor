@@ -53,13 +53,9 @@ todoFileIndexes = do
 actionsSpec :: Spec
 actionsSpec = describe "High-level operations on todos" $ do
   describe "mark as done" $ do
-    describe "when there are no todos" $ do
-      prop "reports no such task" $
-        \day -> snd (doItems day emptyFile [2]) `shouldBe` [NoSuchTask 2]
-      prop "reports no such task for all given tasks" $
-        \day -> snd (doItems day emptyFile [2, 3]) `shouldBe` [NoSuchTask 2, NoSuchTask 3]
-      prop "doesn't create new tasks" $
-        \day -> (listItems $ fst (doItems day emptyFile [2, 3])) `shouldBe` []
+    describe "for empty files" $ do
+      prop "leaves file unchanged and reports NoSuchTask for all given items" $
+        \day items -> doItems day emptyFile items `shouldBe` (emptyFile, map NoSuchTask items)
 
     describe "for valid items" $ do
       prop "marks the item as done" $
