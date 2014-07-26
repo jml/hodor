@@ -29,6 +29,7 @@ import Hodor.Types (
   TaskAction(..),
   TodoEvent(..),
   TodoFile,
+  undoItems,
   unsafeGetItem,
   unsafeMakePriority
   )
@@ -98,6 +99,50 @@ actionsSpec = describe "High-level operations on todos" $ do
 
       prop "does not remove items from todo" $
         \file day items -> (numItems $ fst $ doItems day file items) `shouldBe` numItems file
+
+  describe "mark as undone" $ do
+    describe "for empty files" $ do
+      prop "leaves file unchanged and reports NoSuchTask for all given items" $
+        \items -> undoItems emptyFile items `shouldBe` (emptyFile, map NoSuchTask items)
+
+    describe "for invalid items" $ do
+      prop "leaves file unchanged and reports NoSuchTask for all given items" $
+        \file -> forAll (listOf $ invalidIndexesOf file) $ \items ->
+        undoItems file items `shouldBe` (file, map NoSuchTask items)
+
+    describe "for valid items" $ do
+      prop "marks the item as done" $
+        forAll todoFileIndexes $
+        \(file, index) -> getItem (fst $ undoItems file [index]) index `shouldBe`
+                          fmap markAsUndone (getItem file index)
+      prop "reports that it marks item as done" $
+        forAll todoFileIndexes $
+        \(file, index) ->
+        let (newTodoFile, events) = undoItems file [index] in
+        events `shouldBe` [TaskChanged Undone index (unsafeGetItem file index)
+                           (unsafeGetItem newTodoFile index)]
+
+    describe "no items given" $ do
+      prop "leaves file unchanged and performs no actions" $
+        \file -> undoItems file [] `shouldBe` (file, [])
+
+    describe "for a mix of items" $ do
+      prop "has one event for each item given" $
+        \file items -> (length $ snd $ undoItems file items) `shouldBe` length items
+
+      prop "marked all the valid items as done" $
+        \file items -> let (newFile, _) = undoItems file items in
+        map (getItem newFile) items `shouldBe` map (fmap markAsUndone . getItem file) items
+
+      prop "leaves unmentioned items unchanged" $
+        \oldFile items ->
+        let (newFile, _) = undoItems oldFile items
+            nonItems = [1..numItems oldFile] \\ items in
+        map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
+
+      prop "does not remove items from todo" $
+        \file items -> (numItems $ fst $ undoItems file items) `shouldBe` numItems file
+
 
 
 spec :: Spec
