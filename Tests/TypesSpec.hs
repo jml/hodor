@@ -63,8 +63,8 @@ todoFileIndexes = do
   return (file, index)
 
 
-spec :: Spec
-spec = describe "Core operations on todos" $ do
+actionsSpec :: Spec
+actionsSpec = describe "High-level operations on todos" $ do
   describe "mark as done" $ do
     let someDay = fromGregorian 1982 12 25
     describe "when there are no todos" $ do
@@ -87,6 +87,10 @@ spec = describe "Core operations on todos" $ do
             todoWriter = doItems someDay sampleTodo [index]
         unsafeGetItem (fst todoWriter) index `shouldBe` originalItem { dateCompleted = Just someDay }
 
+
+spec :: Spec
+spec = describe "Core operations on todos" $ do
+  actionsSpec
   describe "priorities" $ do
     describe "x < y means x has higher priority than y" $ do
       prop "earlier characters have higher priority (A) < (Z)" $
