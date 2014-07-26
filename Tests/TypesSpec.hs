@@ -9,6 +9,7 @@ import Test.QuickCheck
 
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
+  archive,
   dateCompleted,
   doItems,
   isDone,
@@ -160,3 +161,13 @@ spec = describe "Core operations on todos" $ do
         let oldList = listItems file
             newList = listItems (replaceItem file i item) in
         newList == take (i - 1) oldList ++ [(i, item)] ++ drop i oldList
+
+  describe "archive" $ do
+    prop "strips all done items" $
+      all (not . isDone . snd) . listItems . fst . archive
+    prop "does not remove any not done items" $
+      \file -> [x | (_, x) <- listItems file, not (isDone x)] == map snd ((listItems . fst . archive) file)
+    prop "returns only done items" $
+      all isDone . snd . archive
+    prop "returns precisely the done items" $
+      \file -> [x | (_, x) <- listItems file, isDone x] == snd (archive file)
