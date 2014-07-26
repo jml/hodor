@@ -60,3 +60,7 @@ instance Arbitrary TodoItem where
 
 instance Arbitrary TodoFile where
   arbitrary = liftM (makeTodoFile "arbitrary-file") (listOf arbitrary)
+
+
+nonEmptyTodoFile :: Gen TodoFile
+nonEmptyTodoFile = arbitrary `suchThat` (not . isEmpty)

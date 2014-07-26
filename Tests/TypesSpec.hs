@@ -136,9 +136,9 @@ spec = describe "Core operations on todos" $ do
         forAll (choose (1, length items)) $ \i ->
         getItem (makeTodoFile name items) i == Just (items !! (i - 1))
       prop "aligns with listItem" $
-        \file -> numItems file > 0 ==> forAll (choose (1, numItems file)) $ \i ->
+        forAll nonEmptyTodoFile $ \file -> forAll (choose (1, numItems file)) $ \i ->
         [(i, fromJust (getItem file i))] == [(n, t) | (n, t) <- listItems file, i == n]
     describe "unsafeGetItem" $ do
       prop "returns the item when in range (1-based index)" $
-        \file -> numItems file > 0 ==> forAll (choose (1, numItems file)) $ \i ->
+        forAll nonEmptyTodoFile $ \file -> forAll (choose (1, numItems file)) $ \i ->
         getItem file i == Just (unsafeGetItem file i)
