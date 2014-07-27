@@ -57,6 +57,11 @@ todoFileIndexes = do
   return (file, index)
 
 
+prop_doesNotRemoveTodos :: (TodoFile -> a -> (TodoFile, b)) -> (TodoFile -> a -> Expectation)
+prop_doesNotRemoveTodos transformation =
+  \file item -> (numItems $ fst $ transformation file item) `shouldBe` numItems file
+
+
 actionsSpec :: Spec
 actionsSpec = describe "High-level operations on todos" $ do
   describe "mark as done" $ do
@@ -100,7 +105,7 @@ actionsSpec = describe "High-level operations on todos" $ do
         map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
 
       prop "does not remove items from todo" $
-        \file day items -> (numItems $ fst $ doItems day file items) `shouldBe` numItems file
+        \day -> prop_doesNotRemoveTodos (doItems day)
 
   -- XXX: Many of these properties are very similar to doItems. Figure out if
   -- there is a way to re-use the property definitions.
@@ -145,7 +150,7 @@ actionsSpec = describe "High-level operations on todos" $ do
         map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
 
       prop "does not remove items from todo" $
-        \file items -> (numItems $ fst $ undoItems file items) `shouldBe` numItems file
+        prop_doesNotRemoveTodos undoItems
 
 
   describe "prioritize" $ do
@@ -180,7 +185,7 @@ actionsSpec = describe "High-level operations on todos" $ do
         map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
 
       prop "does not remove items from todo" $
-        \pri file item -> (numItems $ fst $ prioritizeItem pri file item) `shouldBe` numItems file
+        \pri -> prop_doesNotRemoveTodos (prioritizeItem pri)
 
 
   describe "deprioritize" $ do
@@ -213,7 +218,7 @@ actionsSpec = describe "High-level operations on todos" $ do
         map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
 
       prop "does not remove items from todo" $
-        \file item -> (numItems $ fst $ deprioritizeItem file item) `shouldBe` numItems file
+        prop_doesNotRemoveTodos deprioritizeItem
 
 
 spec :: Spec
