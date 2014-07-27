@@ -50,15 +50,15 @@ invalidIndexesOf :: TodoFile -> Gen Int
 invalidIndexesOf file = arbitrary `suchThat` \i -> i < 1 || i > numItems file
 
 
-todoFileIndexes :: Gen (TodoFile, Int)
-todoFileIndexes = do
+todoFileIndex :: Gen (TodoFile, Int)
+todoFileIndex = do
   file <- nonEmptyTodoFile
   index <- indexesOf file
   return (file, index)
 
 
-todoFileIndexeses :: Gen (TodoFile, [Int])
-todoFileIndexeses = do
+todoFileIndexes :: Gen (TodoFile, [Int])
+todoFileIndexes = do
   file <- nonEmptyTodoFile
   index <- listOf1 $ indexesOf file
   return (file, index)
@@ -81,7 +81,7 @@ prop_invalidUnchanged transformation =
 
 prop_reportsEvent :: TaskAction -> Transformation [Int] -> Property
 prop_reportsEvent action transformation =
-  forAll todoFileIndexeses $
+  forAll todoFileIndexes $
   \(file, indexes) ->
   let (newTodoFile, events) = transformation file indexes in
   events `shouldBe` (map (\i -> TaskChanged action i (unsafeGetItem file i)
@@ -123,11 +123,11 @@ actionsSpec = describe "High-level operations on todos" $ do
 
     describe "for valid items" $ do
       prop "marks the item as done" $
-        \day -> forAll todoFileIndexes $
+        \day -> forAll todoFileIndex $
         \(file, index) -> getItem (fst $ doItems day file [index]) index `shouldBe`
                           fmap (flip markAsDone day) (getItem file index)
       prop "reports that it marks item as done" $
-        \day -> forAll todoFileIndexes $
+        \day -> forAll todoFileIndex $
         \(file, index) ->
         let (newTodoFile, events) = doItems day file [index] in
         events `shouldBe` [TaskChanged Done index (unsafeGetItem file index)
@@ -168,11 +168,11 @@ actionsSpec = describe "High-level operations on todos" $ do
 
     describe "for valid items" $ do
       prop "marks the item as not done" $
-        forAll todoFileIndexes $
+        forAll todoFileIndex $
         \(file, index) -> getItem (fst $ undoItems file [index]) index `shouldBe`
                           fmap markAsUndone (getItem file index)
       prop "reports that it marks item as not done" $
-        forAll todoFileIndexes $
+        forAll todoFileIndex $
         \(file, index) ->
         let (newTodoFile, events) = undoItems file [index] in
         events `shouldBe` [TaskChanged Undone index (unsafeGetItem file index)
@@ -208,7 +208,7 @@ actionsSpec = describe "High-level operations on todos" $ do
     describe "for valid items" $ do
       prop "marks the item as prioritized" $
         \pri ->
-        forAll todoFileIndexeses $
+        forAll todoFileIndexes $
         \(file, indexes) -> let (newFile, _) = prioritizeItems pri file indexes in
         map (unsafeGetItem newFile) indexes `shouldBe`
         map (flip prioritize pri . unsafeGetItem file) indexes
@@ -224,7 +224,7 @@ actionsSpec = describe "High-level operations on todos" $ do
 
     describe "for valid items" $ do
       prop "marks the item as deprioritized" $
-        forAll todoFileIndexeses $
+        forAll todoFileIndexes $
         \(file, indexes) -> let (newFile, _) = deprioritizeItems file indexes in
         map (unsafeGetItem newFile) indexes `shouldBe`
         map (flip prioritize noPriority .unsafeGetItem file) indexes
@@ -306,20 +306,20 @@ spec = describe "Core operations on todos" $ do
         forAll (choose (1, length items)) $ \i ->
         getItem (makeTodoFile name items) i `shouldBe` Just (items !! (i - 1))
       prop "aligns with listItem" $
-        forAll todoFileIndexes $ \(file, i) ->
+        forAll todoFileIndex $ \(file, i) ->
         [(i, fromJust (getItem file i))] `shouldBe` [(n, t) | (n, t) <- listItems file, i == n]
     describe "unsafeGetItem" $ do
       prop "returns the item when in range (1-based index)" $
-        forAll todoFileIndexes $ \(file, i) ->
+        forAll todoFileIndex $ \(file, i) ->
         getItem file i `shouldBe` Just (unsafeGetItem file i)
     describe "replaceItem" $ do
       prop "swaps out the specified item" $
-        \item -> forAll todoFileIndexes $ \(file, i) ->
+        \item -> forAll todoFileIndex $ \(file, i) ->
         let oldList = listItems file
             newList = listItems (replaceItem file i item) in
         newList `shouldBe` take (i - 1) oldList ++ [(i, item)] ++ drop i oldList
       prop "does not alter the size of the todo file" $
-        \item -> forAll todoFileIndexes $ \(file, i) ->
+        \item -> forAll todoFileIndex $ \(file, i) ->
         numItems (replaceItem file i item) `shouldBe` numItems file
 
   describe "archive" $ do
