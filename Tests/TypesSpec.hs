@@ -95,12 +95,25 @@ prop_ignoresUnmentioned transformation =
   map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
 
 
-singleItemTransformations :: TaskAction -> Transformation [Int] -> Property
-singleItemTransformations action transformation = conjoin [
+prop_uniqueEvent :: Transformation [Int] -> Property
+prop_uniqueEvent transformation =
+  property $
+  \file items -> (length $ snd $ transformation file items) `shouldBe` length (nub items)
+
+
+prop_noItemsGiven :: Transformation [a] -> Property
+prop_noItemsGiven transformation =
+  property $ \file -> transformation file [] `shouldBe` (file, [])
+
+
+itemTransformations :: TaskAction -> Transformation [Int] -> Property
+itemTransformations action transformation = conjoin [
   prop_emptyUnchanged transformation,
   prop_invalidUnchanged transformation,
   prop_reportsEvent action transformation,
-  prop_ignoresUnmentioned transformation
+  prop_ignoresUnmentioned transformation,
+  prop_uniqueEvent transformation,
+  prop_noItemsGiven transformation
   ]
 
 
@@ -112,98 +125,33 @@ prop_doesNotRemoveTodos transformation =
 actionsSpec :: Spec
 actionsSpec = describe "High-level operations on todos" $ do
   describe "mark as done" $ do
-    describe "for empty files" $ do
-      prop "leaves file unchanged and reports NoSuchTask for all unique given items" $
-        \day items -> doItems day emptyFile items `shouldBe` (emptyFile, map NoSuchTask (nub items))
 
-    describe "for invalid items" $ do
-      prop "leaves file unchanged and reports NoSuchTask for all unique given items" $
-        \day file -> forAll (listOf $ invalidIndexesOf file) $ \items ->
-        doItems day file items `shouldBe` (file, map NoSuchTask (nub items))
+    prop "common properties" $
+      \day -> itemTransformations Done (doItems day)
 
-    describe "for valid items" $ do
-      prop "marks the item as done" $
-        \day -> forAll todoFileIndex $
-        \(file, index) -> getItem (fst $ doItems day file [index]) index `shouldBe`
-                          fmap (flip markAsDone day) (getItem file index)
-      prop "reports that it marks item as done" $
-        \day -> forAll todoFileIndex $
-        \(file, index) ->
-        let (newTodoFile, events) = doItems day file [index] in
-        events `shouldBe` [TaskChanged Done index (unsafeGetItem file index)
-                           (unsafeGetItem newTodoFile index)]
+    prop "marked all the valid items as done" $
+      \file day items -> let (newFile, _) = doItems day file items in
+      map (getItem newFile) items `shouldBe` map (fmap (flip markAsDone day) . getItem file) items
 
-    describe "no items given" $ do
-      prop "leaves file unchanged and performs no actions" $
-        \file day -> doItems day file [] `shouldBe` (file, [])
+    prop "does not remove items from todo" $ \day -> prop_doesNotRemoveTodos (doItems day)
 
-    describe "for a mix of items" $ do
-      prop "has one event for each unique item given" $
-        \file day items -> (length $ snd $ doItems day file items) `shouldBe` length (nub items)
 
-      prop "marked all the valid items as done" $
-        \file day items -> let (newFile, _) = doItems day file items in
-        map (getItem newFile) items `shouldBe` map (fmap (flip markAsDone day) . getItem file) items
-
-      prop "leaves unmentioned items unchanged" $
-        \oldFile day items ->
-        let (newFile, _) = doItems day oldFile items
-            nonItems = [1..numItems oldFile] \\ items in
-        map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
-
-      prop "does not remove items from todo" $
-        \day -> prop_doesNotRemoveTodos (doItems day)
-
-  -- XXX: Many of these properties are very similar to doItems. Figure out if
-  -- there is a way to re-use the property definitions.
   describe "mark as undone" $ do
-    describe "for empty files" $ do
-      prop "leaves file unchanged and reports NoSuchTask for all unique given items" $
-        \items -> undoItems emptyFile items `shouldBe` (emptyFile, map NoSuchTask (nub items))
 
-    describe "for invalid items" $ do
-      prop "leaves file unchanged and reports NoSuchTask for all unique given items" $
-        \file -> forAll (listOf $ invalidIndexesOf file) $ \items ->
-        undoItems file items `shouldBe` (file, map NoSuchTask (nub items))
+    prop "common properties" $
+      itemTransformations Undone undoItems
 
-    describe "for valid items" $ do
-      prop "marks the item as not done" $
-        forAll todoFileIndex $
-        \(file, index) -> getItem (fst $ undoItems file [index]) index `shouldBe`
-                          fmap markAsUndone (getItem file index)
-      prop "reports that it marks item as not done" $
-        forAll todoFileIndex $
-        \(file, index) ->
-        let (newTodoFile, events) = undoItems file [index] in
-        events `shouldBe` [TaskChanged Undone index (unsafeGetItem file index)
-                           (unsafeGetItem newTodoFile index)]
+    prop "marked all the valid items as not done" $
+      \file items -> let (newFile, _) = undoItems file items in
+      map (getItem newFile) items `shouldBe` map (fmap markAsUndone . getItem file) items
 
-    describe "no items given" $ do
-      prop "leaves file unchanged and performs no actions" $
-        \file -> undoItems file [] `shouldBe` (file, [])
-
-    describe "for a mix of items" $ do
-      prop "has one event for each unique item given" $
-        \file items -> (length $ snd $ undoItems file items) `shouldBe` length (nub items)
-
-      prop "marked all the valid items as not done" $
-        \file items -> let (newFile, _) = undoItems file items in
-        map (getItem newFile) items `shouldBe` map (fmap markAsUndone . getItem file) items
-
-      prop "leaves unmentioned items unchanged" $
-        \oldFile items ->
-        let (newFile, _) = undoItems oldFile items
-            nonItems = [1..numItems oldFile] \\ items in
-        map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
-
-      prop "does not remove items from todo" $
-        prop_doesNotRemoveTodos undoItems
+    prop "does not remove items from todo" $ prop_doesNotRemoveTodos undoItems
 
 
   describe "prioritize" $ do
 
     prop "common single-item properties" $
-      \pri -> singleItemTransformations Prioritized (prioritizeItems pri)
+      \pri -> itemTransformations Prioritized (prioritizeItems pri)
 
     describe "for valid items" $ do
       prop "marks the item as prioritized" $
@@ -220,7 +168,7 @@ actionsSpec = describe "High-level operations on todos" $ do
   describe "deprioritize" $ do
 
     prop "common single-item properties" $
-      singleItemTransformations Deprioritized deprioritizeItems
+      itemTransformations Deprioritized deprioritizeItems
 
     describe "for valid items" $ do
       prop "marks the item as deprioritized" $
