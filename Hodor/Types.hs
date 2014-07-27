@@ -54,7 +54,10 @@ data TodoItem = TodoItem {
   priority :: Priority,
   dateCreated :: Maybe Day,
   tokens :: [Token]
-} deriving (Show, Eq, Ord)
+} deriving (Eq, Ord)
+
+instance Show TodoItem where
+  show = show . unparse
 
 
 -- XXX: The 'Ord' haskell picks isn't the one todo uses. Not sure if that
@@ -217,7 +220,7 @@ _adjustItem action f file i = do
 
 
 _adjustItems :: TaskAction -> (TodoItem -> TodoItem) -> TodoFile -> [Int] -> TodoEvents TodoFile
-_adjustItems action = foldM . (_adjustItem action)
+_adjustItems action f file items = foldM (_adjustItem action f) file (nub items)
 
 
 doItems :: Day -> TodoFile -> [Int] -> (TodoFile, [TodoEvent])
@@ -228,12 +231,12 @@ undoItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
 undoItems file = _runEvents . _adjustItems Undone markAsUndone file
 
 
-prioritizeItem :: Priority -> TodoFile -> Int -> (TodoFile, [TodoEvent])
-prioritizeItem p file = _runEvents . _adjustItem Prioritized (flip prioritize p) file
+prioritizeItems :: Priority -> TodoFile -> [Int] -> (TodoFile, [TodoEvent])
+prioritizeItems p file = _runEvents . _adjustItems Prioritized (flip prioritize p) file
 
 
-deprioritizeItem :: TodoFile -> Int -> (TodoFile, [TodoEvent])
-deprioritizeItem file = _runEvents . _adjustItem Deprioritized (flip prioritize noPriority) file
+deprioritizeItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
+deprioritizeItems file = _runEvents . _adjustItems Deprioritized (flip prioritize noPriority) file
 
 
 {- Turn todos back into strings. -}
