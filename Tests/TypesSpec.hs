@@ -1,7 +1,7 @@
 module Tests.TypesSpec (spec) where
 
 import Data.Char (isAlpha, toUpper)
-import Data.List ((\\))
+import Data.List (delete, (\\))
 import Data.Maybe (fromJust)
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
@@ -11,6 +11,7 @@ import Hodor.Types (
   allItems,
   archive,
   dateCompleted,
+  deprioritizeItem,
   doItems,
   isDone,
   hasPriority,
@@ -25,6 +26,7 @@ import Hodor.Types (
   noPriority,
   numItems,
   prioritize,
+  prioritizeItem,
   replaceItem,
   TaskAction(..),
   TodoEvent(..),
@@ -100,6 +102,8 @@ actionsSpec = describe "High-level operations on todos" $ do
       prop "does not remove items from todo" $
         \file day items -> (numItems $ fst $ doItems day file items) `shouldBe` numItems file
 
+  -- XXX: Many of these properties are very similar to doItems. Figure out if
+  -- there is a way to re-use the property definitions.
   describe "mark as undone" $ do
     describe "for empty files" $ do
       prop "leaves file unchanged and reports NoSuchTask for all given items" $
@@ -111,11 +115,11 @@ actionsSpec = describe "High-level operations on todos" $ do
         undoItems file items `shouldBe` (file, map NoSuchTask items)
 
     describe "for valid items" $ do
-      prop "marks the item as done" $
+      prop "marks the item as not done" $
         forAll todoFileIndexes $
         \(file, index) -> getItem (fst $ undoItems file [index]) index `shouldBe`
                           fmap markAsUndone (getItem file index)
-      prop "reports that it marks item as done" $
+      prop "reports that it marks item as not done" $
         forAll todoFileIndexes $
         \(file, index) ->
         let (newTodoFile, events) = undoItems file [index] in
@@ -130,7 +134,7 @@ actionsSpec = describe "High-level operations on todos" $ do
       prop "has one event for each item given" $
         \file items -> (length $ snd $ undoItems file items) `shouldBe` length items
 
-      prop "marked all the valid items as done" $
+      prop "marked all the valid items as not done" $
         \file items -> let (newFile, _) = undoItems file items in
         map (getItem newFile) items `shouldBe` map (fmap markAsUndone . getItem file) items
 
@@ -143,6 +147,73 @@ actionsSpec = describe "High-level operations on todos" $ do
       prop "does not remove items from todo" $
         \file items -> (numItems $ fst $ undoItems file items) `shouldBe` numItems file
 
+
+  describe "prioritize" $ do
+    describe "for empty files" $ do
+      prop "leaves file unchanged and reports NoSuchTask for all given items" $
+        \pri item -> prioritizeItem pri emptyFile item `shouldBe` (emptyFile, [NoSuchTask item])
+
+    describe "for invalid items" $ do
+      prop "leaves file unchanged and reports NoSuchTask for all given items" $
+        \file pri -> forAll (invalidIndexesOf file) $ \item ->
+        prioritizeItem pri file item `shouldBe` (file, [NoSuchTask item])
+
+    describe "for valid items" $ do
+      prop "marks the item as prioritized" $
+        \pri ->
+        forAll todoFileIndexes $
+        \(file, index) -> unsafeGetItem (fst $ prioritizeItem pri file index) index `shouldBe`
+                          prioritize (unsafeGetItem file index) pri
+
+      prop "reports that it marks item as prioritized" $
+        \pri ->
+        forAll todoFileIndexes $
+        \(file, index) ->
+        let (newTodoFile, events) = prioritizeItem pri file index in
+        events `shouldBe` [TaskChanged Prioritized index (unsafeGetItem file index)
+                           (unsafeGetItem newTodoFile index)]
+
+      prop "leaves unmentioned items unchanged" $
+        \pri oldFile item ->
+        let (newFile, _) = prioritizeItem pri oldFile item
+            nonItems = delete item [1..numItems oldFile] in
+        map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
+
+      prop "does not remove items from todo" $
+        \pri file item -> (numItems $ fst $ prioritizeItem pri file item) `shouldBe` numItems file
+
+
+  describe "deprioritize" $ do
+    describe "for empty files" $ do
+      prop "leaves file unchanged and reports NoSuchTask for all given items" $
+        \item -> deprioritizeItem emptyFile item `shouldBe` (emptyFile, [NoSuchTask item])
+
+    describe "for invalid items" $ do
+      prop "leaves file unchanged and reports NoSuchTask for all given items" $
+        \file -> forAll (invalidIndexesOf file) $ \item ->
+        deprioritizeItem file item `shouldBe` (file, [NoSuchTask item])
+
+    describe "for valid items" $ do
+      prop "marks the item as deprioritized" $
+        forAll todoFileIndexes $
+        \(file, index) -> unsafeGetItem (fst $ deprioritizeItem file index) index `shouldBe`
+                          prioritize (unsafeGetItem file index) noPriority
+
+      prop "reports that it marks item as deprioritized" $
+        forAll todoFileIndexes $
+        \(file, index) ->
+        let (newTodoFile, events) = deprioritizeItem file index in
+        events `shouldBe` [TaskChanged Deprioritized index (unsafeGetItem file index)
+                           (unsafeGetItem newTodoFile index)]
+
+      prop "leaves unmentioned items unchanged" $
+        \oldFile item ->
+        let (newFile, _) = deprioritizeItem oldFile item
+            nonItems = delete item [1..numItems oldFile] in
+        map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
+
+      prop "does not remove items from todo" $
+        \file item -> (numItems $ fst $ deprioritizeItem file item) `shouldBe` numItems file
 
 
 spec :: Spec
