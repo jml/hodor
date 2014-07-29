@@ -1,5 +1,6 @@
 module Hodor.Format where
 
+import Hodor.Actions
 import Hodor.Types
 import Text.Printf
 

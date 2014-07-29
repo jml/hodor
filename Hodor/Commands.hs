@@ -25,6 +25,12 @@ import Hodor (
   TodoItem,
   unparse
   )
+import Hodor.Actions (
+  deprioritizeItems,
+  doItems,
+  prioritizeItems,
+  undoItems,
+  )
 import Hodor.Config (
   Config,
   todoFilePath,
@@ -39,15 +45,11 @@ import Hodor.Types (
   allContexts,
   allProjects,
   archive,
-  deprioritizeItems,
-  doItems,
   hasPriority,
   filterItems,
   makePriority,
   numItems,
   Priority,
-  prioritizeItems,
-  undoItems,
   )
 
 

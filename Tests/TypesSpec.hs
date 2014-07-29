@@ -7,12 +7,18 @@ import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
 
+import Hodor.Actions (
+  deprioritizeItems,
+  doItems,
+  prioritizeItems,
+  TaskAction(..),
+  TodoEvent(..),
+  undoItems,
+  )
 import Hodor.Types (
   allItems,
   archive,
   dateCompleted,
-  deprioritizeItems,
-  doItems,
   isDone,
   hasPriority,
   filterItems,
@@ -26,12 +32,8 @@ import Hodor.Types (
   noPriority,
   numItems,
   prioritize,
-  prioritizeItems,
   replaceItem,
-  TaskAction(..),
-  TodoEvent(..),
   TodoFile,
-  undoItems,
   unsafeGetItem,
   unsafeMakePriority
   )
