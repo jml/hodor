@@ -8,7 +8,6 @@ module Hodor.Parser (
   ) where
 
 import Control.Monad.Error (Error, strMsg)
-import Data.Char (isSpace)
 import Data.Time (Day, fromGregorian)
 import Text.Parsec hiding (ParseError)
 import Text.Parsec.String (Parser)
@@ -21,7 +20,6 @@ import Hodor.Types (
   TodoFile,
   TodoItem(TodoItem),
   Priority,
-  Token(Bareword, ProjectToken, ContextToken),
   unsafeMakePriority
   )
 
@@ -70,7 +68,7 @@ todoTxtLine = do
   completed <- optionMaybe p_completion
   p <- p_priority
   created <- optionMaybe p_date
-  todo_tokens <- p_tokens
+  todo_tokens <- many (noneOf "\n")
   return $ TodoItem completed p created todo_tokens
 
 
@@ -102,31 +100,3 @@ p_date = do
   day <- count 2 digit
   char ' '
   return $ fromGregorian (read year) (read month) (read day)
-
-
-p_tokens :: Parser [Token]
-p_tokens = many p_word
-
-p_word :: Parser Token
-p_word = (try p_project)
-         <|> (try p_context)
-         <|> try (fmap Bareword p_bareword)
-         <|> (fmap Bareword p_whitespace)
-
-p_project :: Parser Token
-p_project = do
-  char '+'
-  p <- p_bareword
-  return $ ProjectToken p
-
-p_context :: Parser Token
-p_context = do
-  char '@'
-  c <- p_bareword
-  return $ ContextToken c
-
-p_bareword :: Parser String
-p_bareword = many1 (satisfy (not . isSpace))
-
-p_whitespace :: Parser String
-p_whitespace = many1 (oneOf " \t")

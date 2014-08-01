@@ -7,7 +7,7 @@ import Prelude hiding (concatMap)
 import Data.Char (isAsciiUpper, isAsciiLower, toUpper)
 import Data.Foldable (concatMap, toList)
 import Data.List (nub, sort)
-import Data.Maybe (isJust)
+import Data.Maybe (catMaybes, isJust)
 import Data.Time (Day, showGregorian)
 import qualified Data.Sequence as S
 
@@ -42,16 +42,27 @@ isPriority _       = False
 
 data Project = Project String deriving (Eq, Ord, Show)
 
+
+toProject :: String -> Maybe Project
+toProject ('+':[])      = Nothing
+toProject ('+':project) = Just (Project project)
+toProject _             = Nothing
+
+
 data Context = Context String deriving (Eq, Ord, Show)
 
-data Token = Bareword String | ProjectToken String | ContextToken String deriving (Eq, Ord, Show)
+
+toContext :: String -> Maybe Context
+toContext ('@':[])      = Nothing
+toContext ('@':context) = Just (Context context)
+toContext _             = Nothing
 
 
 data TodoItem = TodoItem {
   dateCompleted :: Maybe Day,
   priority :: Priority,
   dateCreated :: Maybe Day,
-  tokens :: [Token]
+  description :: String
 } deriving (Eq, Ord)
 
 instance Show TodoItem where
@@ -66,15 +77,17 @@ instance Show TodoItem where
 
 -- TODO: UNTESTED: projects
 projects :: TodoItem -> [Project]
-projects item = [ Project p | ProjectToken p <- (tokens item) ]
+projects = catMaybes . map toProject . words . description
 
 -- TODO: UNTESTED: contexts
 contexts :: TodoItem -> [Context]
-contexts item = [ Context p | ContextToken p <- (tokens item) ]
+contexts = catMaybes . map toContext . words . description
 
--- TODO: UNTESTED: description
-description :: TodoItem -> String
-description item = concatMap unparse (tokens item)
+
+startsWith :: Eq a => a -> [a] -> Bool
+startsWith _ []    = False
+startsWith c (x:_) = c == x
+
 
 isDone :: TodoItem -> Bool
 isDone = isJust . dateCompleted
@@ -180,12 +193,6 @@ archive file =
 
 class Unparse a where
   unparse :: a -> String
-
-
-instance Unparse Token where
-  unparse (Bareword string) = string
-  unparse (ProjectToken string) = '+':string
-  unparse (ContextToken string) = '@':string
 
 
 instance (Unparse a) => Unparse (Maybe a) where
