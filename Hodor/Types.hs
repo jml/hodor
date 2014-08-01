@@ -108,6 +108,18 @@ prioritize :: TodoItem -> Priority -> TodoItem
 prioritize item p = item { priority = p }
 
 
+amendDescription :: TodoItem -> String -> TodoItem
+amendDescription item d = item { description = d }
+
+
+appendDescription :: TodoItem -> String -> TodoItem
+appendDescription item suffix = amendDescription item (description item ++ ' ':suffix)
+
+
+prependDescription :: TodoItem -> String -> TodoItem
+prependDescription item prefix = amendDescription item (prefix ++ ' ':description item)
+
+
 -- XXX: Could make this a NamedList type class or something, implement
 -- functor, foldable & traversable, and then make a specific instance
 -- (newtype?) for todo.

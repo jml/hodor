@@ -17,8 +17,11 @@ import Hodor.Actions (
   )
 import Hodor.Types (
   allItems,
+  amendDescription,
+  appendDescription,
   archive,
   dateCompleted,
+  description,
   isDone,
   hasPriority,
   filterItems,
@@ -31,6 +34,7 @@ import Hodor.Types (
   markAsUndone,
   noPriority,
   numItems,
+  prependDescription,
   prioritize,
   replaceItem,
   TodoFile,
@@ -224,6 +228,16 @@ spec = describe "Core operations on todos" $ do
     prop "setting no priority shows there is not a priority" $
       \item -> not . hasPriority $ prioritize item noPriority
 
+  describe "changing description" $ do
+    prop "setting description updates the description" $
+      \item newDesc -> description (amendDescription item newDesc) `shouldBe` newDesc
+    prop "append adds to the description" $
+      \item suffix -> description (appendDescription item suffix) `shouldBe`
+                      description item ++ ' ':suffix
+    prop "prepend adds to the description" $
+      \item prefix -> description (prependDescription item prefix) `shouldBe`
+                      prefix ++ ' ':description item
+
   describe "todo files" $ do
     describe "numItems" $ do
       prop "shows zero when there are no items" $
@@ -284,3 +298,5 @@ spec = describe "Core operations on todos" $ do
     prop "every item in return value" $
       \file -> let (newFile, doneItems) = archive file in
       allItems newFile ++ doneItems `shouldMatchList` allItems file
+
+
