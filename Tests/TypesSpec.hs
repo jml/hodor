@@ -76,35 +76,64 @@ type Transformation a = (TodoFile -> a -> (TodoFile, [TodoEvent]))
 -- XXX: If there were something that was like 'map f' but when given a
 -- non-list would lift to a list and return a singleton, that would make this
 -- more generic.
-prop_emptyUnchanged :: Transformation [Int] -> Property
-prop_emptyUnchanged transformation =
+prop_emptyUnchanged_multiple :: Transformation [Int] -> Property
+prop_emptyUnchanged_multiple transformation =
   property $ \items -> transformation emptyFile items `shouldBe` (emptyFile, map NoSuchTask (nub items))
 
-prop_invalidUnchanged :: Transformation [Int] -> Property
-prop_invalidUnchanged transformation =
+prop_emptyUnchanged_single :: Transformation Int -> Property
+prop_emptyUnchanged_single transformation =
+  property $ \item -> transformation emptyFile item `shouldBe` (emptyFile, [NoSuchTask item])
+
+prop_invalidUnchanged_multiple :: Transformation [Int] -> Property
+prop_invalidUnchanged_multiple transformation =
   property $ \file -> forAll (listOf $ invalidIndexesOf file) $ \items ->
   transformation file items `shouldBe` (file, map NoSuchTask (nub items))
 
-prop_reportsEvent :: TaskAction -> Transformation [Int] -> Property
-prop_reportsEvent action transformation =
+prop_invalidUnchanged_single :: Transformation Int -> Property
+prop_invalidUnchanged_single transformation =
+  property $ \file -> forAll (invalidIndexesOf file) $ \item ->
+  transformation file item `shouldBe` (file, [NoSuchTask item])
+
+prop_reportsEvent_multiple :: TaskAction -> Transformation [Int] -> Property
+prop_reportsEvent_multiple action transformation =
   forAll todoFileIndexes $
   \(file, indexes) ->
   let (newTodoFile, events) = transformation file indexes in
   events `shouldBe` (map (\i -> TaskChanged action i (unsafeGetItem file i)
                                 (unsafeGetItem newTodoFile i)) (nub indexes))
 
-prop_ignoresUnmentioned :: Transformation [Int] -> Property
-prop_ignoresUnmentioned transformation =
+prop_reportsEvent_single :: TaskAction -> Transformation Int -> Property
+prop_reportsEvent_single action transformation =
+  forAll todoFileIndex $
+  \(file, index) ->
+  let (newTodoFile, events) = transformation file index in
+  events `shouldBe` [TaskChanged action index (unsafeGetItem file index)
+                     (unsafeGetItem newTodoFile index)]
+
+prop_ignoresUnmentioned_multiple :: Transformation [Int] -> Property
+prop_ignoresUnmentioned_multiple transformation =
   property $ \oldFile items ->
   let (newFile, _) = transformation oldFile items
       nonItems = [1..numItems oldFile] \\ items in
   map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
 
+prop_ignoresUnmentioned_single :: Transformation Int -> Property
+prop_ignoresUnmentioned_single transformation =
+  property $ \oldFile item ->
+  let (newFile, _) = transformation oldFile item
+      nonItems = [1..numItems oldFile] \\ [item] in
+  map (getItem newFile) nonItems `shouldBe` map (getItem oldFile) nonItems
 
-prop_uniqueEvent :: Transformation [Int] -> Property
-prop_uniqueEvent transformation =
+
+prop_uniqueEvent_multiple :: Transformation [Int] -> Property
+prop_uniqueEvent_multiple transformation =
   property $
   \file items -> (length $ snd $ transformation file items) `shouldBe` length (nub items)
+
+
+prop_uniqueEvent_single :: Transformation Int -> Property
+prop_uniqueEvent_single transformation =
+  property $ \file item -> (length $ snd $ transformation file item) `shouldBe` 1
 
 
 prop_noItemsGiven :: Transformation [a] -> Property
@@ -112,13 +141,13 @@ prop_noItemsGiven transformation =
   property $ \file -> transformation file [] `shouldBe` (file, [])
 
 
-itemTransformations :: TaskAction -> Transformation [Int] -> Property
-itemTransformations action transformation = conjoin [
-  prop_emptyUnchanged transformation,
-  prop_invalidUnchanged transformation,
-  prop_reportsEvent action transformation,
-  prop_ignoresUnmentioned transformation,
-  prop_uniqueEvent transformation,
+itemsTransformations :: TaskAction -> Transformation [Int] -> Property
+itemsTransformations action transformation = conjoin [
+  prop_emptyUnchanged_multiple transformation,
+  prop_invalidUnchanged_multiple transformation,
+  prop_reportsEvent_multiple action transformation,
+  prop_ignoresUnmentioned_multiple transformation,
+  prop_uniqueEvent_multiple transformation,
   prop_noItemsGiven transformation
   ]
 
@@ -133,7 +162,7 @@ actionsSpec = describe "High-level operations on todos" $ do
   describe "mark as done" $ do
 
     prop "common properties" $
-      \day -> itemTransformations Done (doItems day)
+      \day -> itemsTransformations Done (doItems day)
 
     prop "marked all the valid items as done" $
       \file day items -> let (newFile, _) = doItems day file items in
@@ -145,7 +174,7 @@ actionsSpec = describe "High-level operations on todos" $ do
   describe "mark as undone" $ do
 
     prop "common properties" $
-      itemTransformations Undone undoItems
+      itemsTransformations Undone undoItems
 
     prop "marked all the valid items as not done" $
       \file items -> let (newFile, _) = undoItems file items in
@@ -157,7 +186,7 @@ actionsSpec = describe "High-level operations on todos" $ do
   describe "prioritize" $ do
 
     prop "common single-item properties" $
-      \pri -> itemTransformations Prioritized (prioritizeItems pri)
+      \pri -> itemsTransformations Prioritized (prioritizeItems pri)
 
     describe "for valid items" $ do
       prop "marks the item as prioritized" $
@@ -174,7 +203,7 @@ actionsSpec = describe "High-level operations on todos" $ do
   describe "deprioritize" $ do
 
     prop "common single-item properties" $
-      itemTransformations Deprioritized deprioritizeItems
+      itemsTransformations Deprioritized deprioritizeItems
 
     describe "for valid items" $ do
       prop "marks the item as deprioritized" $

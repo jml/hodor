@@ -85,4 +85,3 @@ prioritizeItems p file = _runEvents . _adjustItems Prioritized (flip prioritize 
 
 deprioritizeItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
 deprioritizeItems file = _runEvents . _adjustItems Deprioritized (flip prioritize noPriority) file
-
