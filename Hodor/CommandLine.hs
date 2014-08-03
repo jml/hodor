@@ -3,7 +3,6 @@ module Hodor.CommandLine where
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Trans (liftIO)
 import qualified Data.Map as M
-import Data.Maybe ( fromMaybe )
 import System.Console.GetOpt
 import System.Environment (getArgs)
 
@@ -27,20 +26,21 @@ import Hodor.Commands (
 import Hodor.Config
 
 
-data Flag = TodoFile FilePath | DoneFile FilePath
+data Flag = ConfigFile FilePath
+          | TodoFile (Maybe FilePath)
+          | DoneFile (Maybe FilePath)
 
 
 options :: [OptDescr Flag]
 options =
-    [ Option ['t'] ["todo-file"] (OptArg tFile "FILE") "location of todo file"
-    , Option ['d'] ["done-file"] (OptArg dFile "FILE") "location of done file"
+    [ Option ['t'] ["todo-file"] (OptArg TodoFile "FILE") "location of todo file"
+    , Option ['d'] ["done-file"] (OptArg DoneFile "FILE") "location of done file"
     ]
 
 
--- XXX: It's a bit crappy having these defaults specified twice over
-tFile,dFile :: Maybe String -> Flag
-tFile = TodoFile . fromMaybe defaultTodoFile
-dFile = DoneFile  . fromMaybe defaultDoneFile
+defaultConfigFile :: FilePath
+defaultConfigFile = "~/.hodor/config.yaml"
+
 
 
 hodorOpts :: (Error e, MonadError e m) => [String] -> m ([Flag], [String])
@@ -60,9 +60,9 @@ usageError errs = strMsg (concat errs ++ usageInfo header options)
 
 
 updateConfiguration :: Config -> Flag -> Config
-updateConfiguration config (TodoFile path) = config { todoFilePath = path }
-updateConfiguration config (DoneFile path) = config { doneFilePath = path }
-updateConfiguration config _               = config
+updateConfiguration config (TodoFile (Just path)) = config { todoFilePath = path }
+updateConfiguration config (DoneFile (Just path)) = config { doneFilePath = path }
+updateConfiguration config _                      = config
 
 
 getConfiguration :: [Flag] -> Config
