@@ -57,14 +57,16 @@ usageError errs = strMsg (concat errs ++ usageInfo header options)
 
 -- XXX: Is there a better way of doing this transformation?
 -- XXX: Try out lenses
+
+
+updateConfiguration :: Config -> Flag -> Config
+updateConfiguration config (TodoFile path) = config { todoFilePath = path }
+updateConfiguration config (DoneFile path) = config { doneFilePath = path }
+updateConfiguration config _               = config
+
+
 getConfiguration :: [Flag] -> Config
-getConfiguration ((TodoFile path):xs) =
-  let config = (getConfiguration xs)
-  in config { todoFilePath = path }
-getConfiguration ((DoneFile path):xs) =
-  let config = (getConfiguration xs)
-  in config { doneFilePath = path }
-getConfiguration [] = defaultConfig
+getConfiguration = foldl updateConfiguration defaultConfig
 
 
 commands :: M.Map String HodorCommand
