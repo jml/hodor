@@ -24,8 +24,10 @@ instance Formattable Priority where
 
 instance Formattable TodoEvent where
   format (NoSuchTask i) = appMessage $ printf "No task %d\n" i
-  format (TaskChanged e i o t) =
-    unlines [formatTodo i t, appMessage $ formatEvent' e i o t]
+  format (TaskChanged e i o t) = unlines $
+    case formatEvent' e i o t of
+      [] -> [formatTodo i t]
+      xs -> [formatTodo i t, appMessage $ xs]
 
 
 -- XXX: NumberedTodoItem
@@ -52,3 +54,6 @@ formatEvent' Prioritized i o t =
 
 formatEvent' Deprioritized i o _ | hasPriority o = printf "%d deprioritized." i
                                  | otherwise     = printf "%d is not prioritized." i
+
+
+formatEvent' Amend _ _ _ = ""

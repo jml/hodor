@@ -8,8 +8,10 @@ import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
 
 import Hodor.Actions (
+  appendItem,
   deprioritizeItem,
   doItems,
+  prependItem,
   prioritizeItem,
   TaskAction(..),
   TodoEvent(..),
@@ -73,9 +75,6 @@ todoFileIndexes = do
 type Transformation a = (TodoFile -> a -> (TodoFile, [TodoEvent]))
 
 
--- XXX: If there were something that was like 'map f' but when given a
--- non-list would lift to a list and return a singleton, that would make this
--- more generic.
 prop_emptyUnchanged_multiple :: Transformation [Int] -> Property
 prop_emptyUnchanged_multiple transformation =
   property $ \items -> transformation emptyFile items `shouldBe` (emptyFile, map NoSuchTask (nub items))
@@ -223,6 +222,40 @@ actionsSpec = describe "High-level operations on todos" $ do
 
     prop "does not remove items from todo" $
       prop_doesNotRemoveTodos deprioritizeItem
+
+
+  describe "append" $ do
+
+    prop "common single-item properties" $
+      \string -> itemTransformation Amend (appendItem string)
+
+    describe "for valid items" $ do
+      prop "appends text to the item" $
+        \string ->
+        forAll todoFileIndex $
+        \(file, index) -> let (newFile, _) = appendItem string file index in
+        unsafeGetItem newFile index `shouldBe`
+        appendDescription (unsafeGetItem file index) string
+
+    prop "does not remove items from todo" $
+      \string -> prop_doesNotRemoveTodos (appendItem string)
+
+
+  describe "prepend" $ do
+
+    prop "common single-item properties" $
+      \string -> itemTransformation Amend (prependItem string)
+
+    describe "for valid items" $ do
+      prop "appends text to the item" $
+        \string ->
+        forAll todoFileIndex $
+        \(file, index) -> let (newFile, _) = prependItem string file index in
+        unsafeGetItem newFile index `shouldBe`
+        prependDescription (unsafeGetItem file index) string
+
+    prop "does not remove items from todo" $
+      \string -> prop_doesNotRemoveTodos (prependItem string)
 
 
 spec :: Spec

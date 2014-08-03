@@ -26,8 +26,10 @@ import Hodor (
   unparse
   )
 import Hodor.Actions (
+  appendItem,
   deprioritizeItem,
   doItems,
+  prependItem,
   prioritizeItem,
   undoItems,
   )
@@ -144,6 +146,24 @@ cmdDeprioritize (i:[]) = do
   replaceTodoFile newTodoFile
   reportEvents events
 cmdDeprioritize _        = throwError $ strMsg "Expect ITEM#"
+
+
+cmdAppend :: HodorCommand
+cmdAppend (i:xs) = do
+  (newTodoFile, events) <- liftM appendItem (getText xs) `ap` loadTodoFile `ap` (getItem i)
+  replaceTodoFile newTodoFile
+  reportEvents events
+  where getText [] = throwError $ strMsg "Must provide text to append"
+        getText ys = return $ unwords ys
+
+
+cmdPrepend :: HodorCommand
+cmdPrepend (i:xs) = do
+  (newTodoFile, events) <- liftM prependItem (getText xs) `ap` loadTodoFile `ap` (getItem i)
+  replaceTodoFile newTodoFile
+  reportEvents events
+  where getText [] = throwError $ strMsg "Must provide text to prepend"
+        getText ys = return $ unwords ys
 
 
 cmdListContexts :: HodorCommand

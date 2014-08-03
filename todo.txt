@@ -14,8 +14,8 @@ x 2014-07-25 Split up Tests to be better organized @refactor @test
 x 2014-07-25 Add configuration option for default command @feature
 Add configuration option for auto-archive @feature
 Implement remove @feature
-Implement prepend @feature
-Implement apppend @feature
+x 2014-08-03 NOW NOW NOW Implement prepend @feature
+x 2014-08-03 Implement apppend @feature
 Implement replace @feature
 Implement help @feature
 x 2014-07-24 Implement prioritize @feature

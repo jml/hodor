@@ -9,10 +9,12 @@ import Data.List (nub)
 import Data.Time (Day)
 import qualified Data.Sequence as S
 import Hodor.Types (
+  appendDescription,
   getItem,
   markAsDone,
   markAsUndone,
   noPriority,
+  prependDescription,
   prioritize,
   Priority,
   replaceItem,
@@ -31,7 +33,8 @@ data TaskAction =
   Done |
   Undone |
   Prioritized |
-  Deprioritized
+  Deprioritized |
+  Amend
   deriving (Show, Eq)
 
 
@@ -85,3 +88,11 @@ prioritizeItem p file = _runEvents . _adjustItem Prioritized (flip prioritize p)
 
 deprioritizeItem :: TodoFile -> Int -> (TodoFile, [TodoEvent])
 deprioritizeItem file = _runEvents . _adjustItem Deprioritized (flip prioritize noPriority) file
+
+
+appendItem :: String -> TodoFile -> Int -> (TodoFile, [TodoEvent])
+appendItem string file = _runEvents . _adjustItem Amend (flip appendDescription string) file
+
+
+prependItem :: String -> TodoFile -> Int -> (TodoFile, [TodoEvent])
+prependItem string file = _runEvents . _adjustItem Amend (flip prependDescription string) file

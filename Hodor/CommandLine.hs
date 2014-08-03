@@ -11,6 +11,7 @@ import System.Environment (getArgs)
 import Hodor.Commands (
   HodorCommand,
   cmdAdd,
+  cmdAppend,
   cmdArchive,
   cmdDeprioritize,
   cmdList,
@@ -18,6 +19,7 @@ import Hodor.Commands (
   cmdListPriority,
   cmdListProjects,
   cmdMarkAsDone,
+  cmdPrepend,
   cmdPrioritize,
   cmdUndo,
   runHodorCommand
@@ -81,6 +83,10 @@ commands = M.fromList [
   , ("p", cmdPrioritize)
   , ("depri", cmdDeprioritize)
   , ("dp", cmdDeprioritize)
+  , ("append", cmdAppend)
+  , ("app", cmdAppend)
+  , ("prepend", cmdPrepend)
+  , ("pre", cmdPrepend)
   ]
 
 
