@@ -79,9 +79,9 @@ undoItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
 undoItems file = _runEvents . _adjustItems Undone markAsUndone file
 
 
-prioritizeItems :: Priority -> TodoFile -> [Int] -> (TodoFile, [TodoEvent])
-prioritizeItems p file = _runEvents . _adjustItems Prioritized (flip prioritize p) file
+prioritizeItem :: Priority -> TodoFile -> Int -> (TodoFile, [TodoEvent])
+prioritizeItem p file = _runEvents . _adjustItem Prioritized (flip prioritize p) file
 
 
-deprioritizeItems :: TodoFile -> [Int] -> (TodoFile, [TodoEvent])
-deprioritizeItems file = _runEvents . _adjustItems Deprioritized (flip prioritize noPriority) file
+deprioritizeItem :: TodoFile -> Int -> (TodoFile, [TodoEvent])
+deprioritizeItem file = _runEvents . _adjustItem Deprioritized (flip prioritize noPriority) file

@@ -8,9 +8,9 @@ import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
 
 import Hodor.Actions (
-  deprioritizeItems,
+  deprioritizeItem,
   doItems,
-  prioritizeItems,
+  prioritizeItem,
   TaskAction(..),
   TodoEvent(..),
   undoItems,
@@ -152,6 +152,16 @@ itemsTransformations action transformation = conjoin [
   ]
 
 
+itemTransformation :: TaskAction -> Transformation Int -> Property
+itemTransformation action transformation = conjoin [
+  prop_emptyUnchanged_single transformation,
+  prop_invalidUnchanged_single transformation,
+  prop_reportsEvent_single action transformation,
+  prop_ignoresUnmentioned_single transformation,
+  prop_uniqueEvent_single transformation
+  ]
+
+
 prop_doesNotRemoveTodos :: (TodoFile -> a -> (TodoFile, b)) -> (TodoFile -> a -> Expectation)
 prop_doesNotRemoveTodos transformation =
   \file item -> (numItems $ fst $ transformation file item) `shouldBe` numItems file
@@ -186,34 +196,33 @@ actionsSpec = describe "High-level operations on todos" $ do
   describe "prioritize" $ do
 
     prop "common single-item properties" $
-      \pri -> itemsTransformations Prioritized (prioritizeItems pri)
+      \pri -> itemTransformation Prioritized (prioritizeItem pri)
 
     describe "for valid items" $ do
       prop "marks the item as prioritized" $
         \pri ->
-        forAll todoFileIndexes $
-        \(file, indexes) -> let (newFile, _) = prioritizeItems pri file indexes in
-        map (unsafeGetItem newFile) indexes `shouldBe`
-        map (flip prioritize pri . unsafeGetItem file) indexes
+        forAll todoFileIndex $
+        \(file, index) -> let (newFile, _) = prioritizeItem pri file index in
+        unsafeGetItem newFile index `shouldBe` prioritize (unsafeGetItem file index) pri
 
       prop "does not remove items from todo" $
-        \pri -> prop_doesNotRemoveTodos (prioritizeItems pri)
+        \pri -> prop_doesNotRemoveTodos (prioritizeItem pri)
 
 
   describe "deprioritize" $ do
 
     prop "common single-item properties" $
-      itemsTransformations Deprioritized deprioritizeItems
+      itemTransformation Deprioritized deprioritizeItem
 
     describe "for valid items" $ do
       prop "marks the item as deprioritized" $
-        forAll todoFileIndexes $
-        \(file, indexes) -> let (newFile, _) = deprioritizeItems file indexes in
-        map (unsafeGetItem newFile) indexes `shouldBe`
-        map (flip prioritize noPriority .unsafeGetItem file) indexes
+        forAll todoFileIndex $
+        \(file, index) -> let (newFile, _) = deprioritizeItem file index in
+        unsafeGetItem newFile index `shouldBe`
+        prioritize (unsafeGetItem file index) noPriority
 
     prop "does not remove items from todo" $
-      prop_doesNotRemoveTodos deprioritizeItems
+      prop_doesNotRemoveTodos deprioritizeItem
 
 
 spec :: Spec
