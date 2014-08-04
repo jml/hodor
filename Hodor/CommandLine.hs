@@ -65,8 +65,8 @@ updateConfiguration config (DoneFile (Just path)) = config { doneFilePath = path
 updateConfiguration config _                      = config
 
 
-getConfiguration :: [Flag] -> Config
-getConfiguration = foldl updateConfiguration defaultConfig
+getConfiguration :: Config -> [Flag] -> Config
+getConfiguration defaultCfg = foldl updateConfiguration defaultCfg
 
 
 commands :: M.Map String HodorCommand
@@ -112,7 +112,8 @@ main = do
   argv <- getArgs
   result <- runErrorT $ do
     (opts, args) <- hodorOpts argv
-    cfg <- return (getConfiguration opts)
+    config <- return defaultConfig
+    cfg <- return (getConfiguration config opts)
     (cmd, rest) <- getCommand (defaultCommand cfg) args
     r <- liftIO $ runHodorCommand cmd cfg rest
     eitherToError r
