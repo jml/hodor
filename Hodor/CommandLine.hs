@@ -26,7 +26,7 @@ import Hodor.Commands (
 import Hodor.Config
 
 
-data Flag = ConfigFile FilePath
+data Flag = ConfigFile (Maybe FilePath)
           | TodoFile (Maybe FilePath)
           | DoneFile (Maybe FilePath)
 
@@ -35,6 +35,7 @@ options :: [OptDescr Flag]
 options =
     [ Option ['t'] ["todo-file"] (OptArg TodoFile "FILE") "location of todo file"
     , Option ['d'] ["done-file"] (OptArg DoneFile "FILE") "location of done file"
+    , Option ['c'] ["config-file"] (OptArg ConfigFile "FILE") "location of config file"
     ]
 
 
@@ -57,8 +58,8 @@ defaultConfigFile = "~/.hodor/config.yaml"
 getConfigFilePath :: FilePath -> [Flag] -> FilePath
 getConfigFilePath defaultPath flags =
   case [ path | ConfigFile path <- flags ] of
-    path:[] -> path
-    []      -> defaultPath
+    (Just path):[] -> path
+    _              -> defaultPath
 
 
 updateConfiguration :: Config -> Flag -> Config
