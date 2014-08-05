@@ -38,11 +38,6 @@ options =
     ]
 
 
-defaultConfigFile :: FilePath
-defaultConfigFile = "~/.hodor/config.yaml"
-
-
-
 hodorOpts :: (Error e, MonadError e m) => [String] -> m ([Flag], [String])
 hodorOpts argv =
   case getOpt RequireOrder options argv of
@@ -55,8 +50,15 @@ usageError errs = strMsg (concat errs ++ usageInfo header options)
                   where header = "Usage: hodor [OPTION...] "
 
 
--- XXX: Is there a better way of doing this transformation?
--- XXX: Try out lenses
+defaultConfigFile :: FilePath
+defaultConfigFile = "~/.hodor/config.yaml"
+
+
+getConfigFilePath :: FilePath -> [Flag] -> FilePath
+getConfigFilePath defaultPath flags =
+  case [ path | ConfigFile path <- flags ] of
+    path:[] -> path
+    []      -> defaultPath
 
 
 updateConfiguration :: Config -> Flag -> Config
@@ -65,8 +67,11 @@ updateConfiguration config (DoneFile (Just path)) = config { doneFilePath = path
 updateConfiguration config _                      = config
 
 
-getConfiguration :: Config -> [Flag] -> Config
-getConfiguration defaultCfg = foldl updateConfiguration defaultCfg
+getHodorConfiguration :: [Flag] -> IO Config
+getHodorConfiguration opts = do
+  let configFilePath = getConfigFilePath defaultConfigFile opts
+  baseConfig <- loadConfigFile configFilePath
+  return $ foldl updateConfiguration baseConfig opts
 
 
 commands :: M.Map String HodorCommand
@@ -112,8 +117,7 @@ main = do
   argv <- getArgs
   result <- runErrorT $ do
     (opts, args) <- hodorOpts argv
-    config <- return defaultConfig
-    cfg <- return (getConfiguration config opts)
+    cfg <- liftIO $ getHodorConfiguration opts
     (cmd, rest) <- getCommand (defaultCommand cfg) args
     r <- liftIO $ runHodorCommand cmd cfg rest
     eitherToError r
