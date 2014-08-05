@@ -1,0 +1,4 @@
+todo-file: todo.txt
+done-file: done.txt
+date-on-add: true
+default-command: ls

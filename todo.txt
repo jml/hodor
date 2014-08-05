@@ -1,4 +1,4 @@
-Add support for a configuration file @feature
+x 2014-08-05 Add support for a configuration file @feature
 Add support for colored output @feature
 Implement a report for todos by project @feature
 Implement a report for todos by context @feature
