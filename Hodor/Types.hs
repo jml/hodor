@@ -7,7 +7,7 @@ import Prelude hiding (concatMap)
 import Data.Char (isAsciiUpper, isAsciiLower, toUpper)
 import Data.Foldable (concatMap, toList)
 import Data.List (nub, sort)
-import Data.Maybe (catMaybes, isJust)
+import Data.Maybe (isJust, mapMaybe)
 import Data.Time (Day, showGregorian)
 import qualified Data.Sequence as S
 
@@ -77,11 +77,11 @@ instance Show TodoItem where
 
 -- TODO: UNTESTED: projects
 projects :: TodoItem -> [Project]
-projects = catMaybes . map toProject . words . description
+projects = mapMaybe toProject . words . description
 
 -- TODO: UNTESTED: contexts
 contexts :: TodoItem -> [Context]
-contexts = catMaybes . map toContext . words . description
+contexts = mapMaybe toContext . words . description
 
 
 startsWith :: Eq a => a -> [a] -> Bool
