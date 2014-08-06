@@ -3,7 +3,6 @@
 
 module Hodor.Commands where
 
-import Control.Arrow (second)
 import Control.Monad (ap, liftM)
 import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
@@ -42,7 +41,7 @@ import Hodor.Config (
   doneFilePath
   )
 import Hodor.File (expandUser)
-import Hodor.Format (appMessage, Formattable, format, formatStringTodo)
+import Hodor.Format (appMessage, Formattable, format, formatTodo)
 import Hodor.Functional (andP)
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
@@ -87,7 +86,7 @@ listItemsCommand p = do
   todoFile <- loadTodoFile
   let items = filterItems p todoFile
   -- ACTION: display output
-  liftIO $ putStr $ unlines $ formatLines items
+  printTodos items
   reportEvents [Listed todoFile (length items)]
 
 
@@ -172,9 +171,8 @@ cmdListProjects _ = do
 {- Utility functions follow -}
 
 -- XXX: NumberedTodoItem
-formatLines :: [(Int, TodoItem)] -> [String]
-formatLines =
-  map formatStringTodo . sortWith snd . map (second unparse)
+printTodos :: [(Int, TodoItem)] -> HodorM ()
+printTodos = liftIO . putStr . unlines . map (uncurry formatTodo) . sortWith snd
 
 
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]
