@@ -69,10 +69,10 @@ runHodorCommand cmd cfg rest = runErrorT $ runReaderT (unHM (cmd rest)) cfg
 cmdList :: HodorCommand
 cmdList args =  listItemsCommand (andP matchers)
   where
+    matchers = map matcher (filter (not . null) args)
     matcher ('-':arg) = isNothing . matchTodoWithRegex arg
     matcher arg = isJust . matchTodoWithRegex arg
     matchTodoWithRegex arg = matchRegex (mkRegex arg) . unparse
-    matchers = map matcher (filter (not . null) args)
 
 
 cmdListPriority :: HodorCommand
