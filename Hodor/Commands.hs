@@ -26,6 +26,8 @@ import Hodor (
   unparse
   )
 import Hodor.Actions (
+  TodoEvent(Archived, Listed),
+  addItem,
   appendItem,
   deprioritizeItem,
   doItems,
@@ -40,7 +42,7 @@ import Hodor.Config (
   doneFilePath
   )
 import Hodor.File (expandUser)
-import Hodor.Format (appMessage, Formattable, format)
+import Hodor.Format (appMessage, Formattable, format, formatStringTodo)
 import Hodor.Functional (andP)
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
@@ -83,26 +85,18 @@ listItemsCommand :: (TodoItem -> Bool) -> HodorM ()
 listItemsCommand p = do
   -- ACTION: read file
   todoFile <- loadTodoFile
+  let items = filterItems p todoFile
   -- ACTION: display output
-  liftIO $ putStr $ showTodoList todoFile (filterItems p todoFile)
+  liftIO $ putStr $ unlines $ formatLines items
+  reportEvents [Listed todoFile (length items)]
 
 
 cmdAdd :: HodorCommand
 cmdAdd args = do
-  (item, output) <- liftM cmdAddPure loadTodoFile `ap` getDateAdded `ap` (return args)
+  (item, events) <- liftM addItem getDateAdded `ap` loadTodoFile `ap` (return args)
   -- ACTION: append item
   appendTodoItem item
-  -- ACTION: display output
-  liftIO $ putStr $ output
-
-
-cmdAddPure :: TodoFile -> Maybe Day -> [String] -> (String, String)
-cmdAddPure todoFile (Just day) args = cmdAddPure todoFile Nothing (show day:args)
-cmdAddPure todoFile Nothing args =
-  let item = unwords args ++ "\n"
-      count = numItems todoFile + 1
-      messages = [formatStringTodo (count, item), eventAdd count] in
-  (item, unlines messages)
+  reportEvents events
 
 
 cmdArchive :: HodorCommand
@@ -110,12 +104,11 @@ cmdArchive _ = do
   todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = archive todoFile
       doneString = unlines . map unparse $ doneItems
-  todoPath <- liftM todoFilePath ask
   donePath <- liftM doneFilePath ask
   liftIO $ appendFile donePath doneString
   replaceTodoFile newTodoFile
   liftIO $ putStr doneString
-  liftIO $ putStrLn $ eventArchived todoPath
+  reportEvents [Archived newTodoFile]
 
 
 cmdMarkAsDone :: HodorCommand
@@ -179,19 +172,9 @@ cmdListProjects _ = do
 {- Utility functions follow -}
 
 -- XXX: NumberedTodoItem
-showTodoList :: TodoFile -> [(Int, TodoItem)] -> String
-showTodoList file items = unlines $ concat [formatLines items, ["--", eventItemsShown file items]]
-
-
--- XXX: NumberedTodoItem
 formatLines :: [(Int, TodoItem)] -> [String]
 formatLines =
   map formatStringTodo . sortWith snd . map (second unparse)
-
-
--- XXX: NumberedTodoItem
-formatStringTodo :: (Int, String) -> String
-formatStringTodo (i, t) = printf "%02d %s" i t
 
 
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]
@@ -244,13 +227,6 @@ appendTodoItem item = do
 
 reportEvents :: (Formattable e) => [e] -> HodorM ()
 reportEvents = mapM_ (liftIO . putStr . format)
-
--- XXX: Make these real events
-eventAdd :: Int -> String
-eventAdd count = appMessage $ printf "%d added." count
-
-eventArchived :: FilePath -> String
-eventArchived file = appMessage $ printf "%s archived." file
 
 -- XXX: NumberedTodoItem
 eventItemsShown :: TodoFile -> [(Int, TodoItem)] -> String

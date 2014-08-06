@@ -32,5 +32,4 @@
 ## Color formatting
 
 * http://hackage.haskell.org/package/ansi-terminal-0.5.0/docs/System-Console-ANSI.html
-* https://hackage.haskell.org/package/illuminate
 * http://hackage.haskell.org/package/rainbow

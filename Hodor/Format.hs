@@ -24,6 +24,11 @@ instance Formattable Priority where
 
 instance Formattable TodoEvent where
   format (NoSuchTask i) = appMessage $ printf "No task %d\n" i
+  format (TaskAdded i t) =
+    unlines $ [formatStringTodo (i, t), appMessage $ printf "%d added." i]
+  format (Archived file) = appMessage (todoFileName file)
+  format (Listed file items) =
+    unlines $ ["--", appMessage $ printf "%d of %d items shown" items (numItems file)]
   format (TaskChanged e i o t) = unlines $
     case formatEvent' e i o t of
       [] -> [formatTodo i t]
@@ -33,6 +38,11 @@ instance Formattable TodoEvent where
 -- XXX: NumberedTodoItem
 formatTodo :: Int -> TodoItem -> String
 formatTodo i t = printf "%02d %s" i (unparse t)
+
+
+-- XXX: NumberedTodoItem
+formatStringTodo :: (Int, String) -> String
+formatStringTodo (i, t) = printf "%02d %s" i t
 
 
 formatEvent' :: TaskAction -> Int -> TodoItem -> TodoItem -> String

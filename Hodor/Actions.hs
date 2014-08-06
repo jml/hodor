@@ -14,6 +14,7 @@ import Hodor.Types (
   markAsDone,
   markAsUndone,
   noPriority,
+  numItems,
   prependDescription,
   prioritize,
   Priority,
@@ -25,7 +26,10 @@ import Hodor.Types (
 -- XXX: NumberedTodoItem
 data TodoEvent =
   NoSuchTask Int |
-  TaskChanged TaskAction Int TodoItem TodoItem
+  TaskChanged TaskAction Int TodoItem TodoItem |
+  TaskAdded Int String |
+  Archived TodoFile |
+  Listed TodoFile Int
   deriving (Show, Eq)
 
 
@@ -96,3 +100,12 @@ appendItem string file = _runEvents . _adjustItem Amend (flip appendDescription 
 
 prependItem :: String -> TodoFile -> Int -> (TodoFile, [TodoEvent])
 prependItem string file = _runEvents . _adjustItem Amend (flip prependDescription string) file
+
+
+addItem :: Maybe Day -> TodoFile -> [String] -> (String, [TodoEvent])
+addItem (Just day) todoFile args  = addItem Nothing todoFile (show day:args)
+addItem Nothing todoFile args =
+  let item = unwords args ++ "\n"
+      count = numItems todoFile + 1
+      messages = [TaskAdded count item] in
+  (item, messages)
