@@ -8,6 +8,8 @@ import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwE
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Data.Maybe (isJust, isNothing)
+import Data.Monoid
+import Data.Text (pack)
 import Data.Time (
   Day,
   getZonedTime,
@@ -15,6 +17,7 @@ import Data.Time (
   zonedTimeToLocalTime
   )
 import GHC.Exts (sortWith)
+import System.Console.Rainbow
 import Text.Printf (printf)
 import Text.Read (readMaybe)
 import Text.Regex
@@ -36,6 +39,7 @@ import Hodor.Actions (
   )
 import Hodor.Config (
   Config,
+  colorEnabled,
   todoFilePath,
   dateOnAdd,
   doneFilePath
@@ -49,6 +53,7 @@ import Hodor.Types (
   allProjects,
   archive,
   hasPriority,
+  isDone,
   filterItems,
   makePriority,
   numItems,
@@ -172,7 +177,23 @@ cmdListProjects _ = do
 
 -- XXX: NumberedTodoItem
 printTodos :: [(Int, TodoItem)] -> HodorM ()
-printTodos = liftIO . putStr . unlines . map (uncurry formatTodo) . sortWith snd
+printTodos items = do
+  useColor <- liftM colorEnabled ask
+  case useColor of
+    False -> liftIO . putStr . unlines . map (uncurry formatTodo) . sortWith snd $ items
+    True -> _printTodosColor items
+
+
+_printTodosColor :: [(Int, TodoItem)] -> HodorM ()
+_printTodosColor = liftIO . mapM_ (putChunkLn . uncurry _colorizeTodo) . sortWith snd
+
+
+_colorizeTodo :: Int -> TodoItem -> Chunk
+_colorizeTodo i t
+  | isDone t      = todoText <> c256_f_grey <> c8_f_magenta
+  | hasPriority t = todoText <> f_white <> bold
+  | otherwise     = todoText <> f_white
+  where todoText = fromText $ pack $ formatTodo i t
 
 
 getItems :: (Error e, MonadError e m) => [String] -> m [Int]
