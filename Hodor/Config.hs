@@ -2,6 +2,7 @@
 
 module Hodor.Config (
   Config,
+  colorEnabled,
   dateOnAdd,
   defaultCommand,
   defaultConfig,
@@ -21,7 +22,8 @@ data Config = Config {
   todoFilePath :: FilePath,
   doneFilePath :: FilePath,
   dateOnAdd :: Bool,
-  defaultCommand :: Maybe String
+  defaultCommand :: Maybe String,
+  colorEnabled :: Bool
 } deriving (Show)
 
 
@@ -31,7 +33,7 @@ instance FromJSON Config where
     doneFile <- v .:? "done-file" .!= defaultDoneFile
     dateOnAddSetting <- v .:? "date-on-add" .!= True
     defaultCommandSetting <- v .:? "default-command"
-    return $ Config todoFile doneFile dateOnAddSetting defaultCommandSetting
+    return $ Config todoFile doneFile dateOnAddSetting defaultCommandSetting True
 
 
 defaultTodoFile, defaultDoneFile :: FilePath
@@ -43,7 +45,8 @@ defaultConfig :: Config
 defaultConfig = Config { todoFilePath = defaultTodoFile,
                          doneFilePath = defaultDoneFile,
                          defaultCommand = Just "list",
-                         dateOnAdd = True }
+                         dateOnAdd = True,
+                         colorEnabled = True }
 
 
 loadConfigFile :: FilePath -> IO Config
