@@ -165,12 +165,12 @@ cmdPrepend (i:xs) = do
 
 cmdListContexts :: HodorCommand
 cmdListContexts _ = do
-  liftM allContexts loadTodoFile >>= mapM_ (liftIO . putStrLn . show)
+  liftM allContexts loadTodoFile >>= mapM_ (liftIO . putStrLn . format)
 
 
 cmdListProjects :: HodorCommand
 cmdListProjects _ = do
-  liftM allProjects loadTodoFile >>= mapM_ (liftIO . putStrLn . show)
+  liftM allProjects loadTodoFile >>= mapM_ (liftIO . putStrLn . format)
 
 
 {- Utility functions follow -}

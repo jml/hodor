@@ -35,6 +35,13 @@ instance Formattable TodoEvent where
       xs -> [formatTodo i t, appMessage $ xs]
 
 
+instance Formattable Project where
+  format (Project p) = '+':p
+
+instance Formattable Context where
+  format (Context c) = '@':c
+
+
 -- XXX: NumberedTodoItem
 formatTodo :: Int -> TodoItem -> String
 formatTodo i t = printf "%02d %s" i (unparse t)
