@@ -53,6 +53,13 @@ loadConfigFile :: FilePath -> IO Config
 loadConfigFile path = do
   expandedPath <- expandUser path
   config <- decodeFile expandedPath
-  return $ case config of
+  expandConfigPaths $ case config of
     Just c -> c
     Nothing -> defaultConfig
+
+
+expandConfigPaths :: Config -> IO Config
+expandConfigPaths config = do
+  todoPath <- expandUser (todoFilePath config)
+  donePath <- expandUser (doneFilePath config)
+  return config { todoFilePath = todoPath, doneFilePath = donePath }

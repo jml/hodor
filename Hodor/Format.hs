@@ -25,7 +25,7 @@ instance Formattable Priority where
 instance Formattable TodoEvent where
   format (NoSuchTask i) = appMessage $ printf "No task %d\n" i
   format (TaskAdded i t) =
-    unlines $ [formatStringTodo (i, t), appMessage $ printf "%d added." i]
+    concat $ [formatStringTodo (i, t), appMessage $ printf "%d added.\n" i]
   format (Archived file) = appMessage (todoFileName file)
   format (Listed file items) =
     unlines $ ["--", appMessage $ printf "%d of %d items shown" items (numItems file)]
