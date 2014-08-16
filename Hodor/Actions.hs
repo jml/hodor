@@ -2,6 +2,7 @@
 
 module Hodor.Actions where
 
+import Control.Applicative (Applicative)
 import Control.Arrow (second)
 import Control.Monad.Writer
 import Data.Foldable (toList)
@@ -43,7 +44,7 @@ data TaskAction =
 
 
 newtype TodoEvents a = TodoEvents { getWriter :: Writer (S.Seq TodoEvent) a }
-                       deriving (Monad)
+                       deriving (Functor, Applicative, Monad)
 
 
 _runEvents :: TodoEvents a -> (a, [TodoEvent])

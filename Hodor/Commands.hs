@@ -1,12 +1,12 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Hodor.Commands where
 
-import Control.Monad (ap, liftM)
-import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
+import Control.Applicative (Applicative)
+import Control.Monad.Except
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
-import Control.Monad.Trans (liftIO, MonadIO)
 import Data.Maybe (isJust, isNothing)
 import Data.Monoid
 import Data.Text (pack)
@@ -63,13 +63,13 @@ import Hodor.Types (
 
 -- XXX: Revisit error type (maybe we should have something more abstracted
 -- than String)
-newtype HodorM a = HM { unHM :: ReaderT Config (ErrorT String IO) a }
-                   deriving (Monad, MonadIO, MonadReader Config, MonadError String)
+newtype HodorM a = HM { unHM :: ReaderT Config (ExceptT String IO) a }
+                   deriving (Functor, Applicative, Monad, MonadIO, MonadReader Config, MonadError String)
 
 type HodorCommand = [String] -> HodorM ()
 
 runHodorCommand :: HodorCommand -> Config -> [String] -> IO (Either String ())
-runHodorCommand cmd cfg rest = runErrorT $ runReaderT (unHM (cmd rest)) cfg
+runHodorCommand cmd cfg rest = runExceptT $ runReaderT (unHM (cmd rest)) cfg
 
 
 cmdList :: HodorCommand
@@ -134,7 +134,7 @@ cmdPrioritize (i:p:[]) = do
   (newTodoFile, events) <- liftM prioritizeItem (getPriority p) `ap` loadTodoFile `ap` (getItem i)
   replaceTodoFile newTodoFile
   reportEvents events
-cmdPrioritize _        = throwError $ strMsg "Expect ITEM# PRIORITY"
+cmdPrioritize _        = throwError "Expect ITEM# PRIORITY"
 
 
 cmdDeprioritize :: HodorCommand
@@ -142,7 +142,7 @@ cmdDeprioritize (i:[]) = do
   (newTodoFile, events) <- liftM deprioritizeItem loadTodoFile `ap` (getItem i)
   replaceTodoFile newTodoFile
   reportEvents events
-cmdDeprioritize _        = throwError $ strMsg "Expect ITEM#"
+cmdDeprioritize _        = throwError "Expect ITEM#"
 
 
 cmdAppend :: HodorCommand
@@ -150,7 +150,7 @@ cmdAppend (i:xs) = do
   (newTodoFile, events) <- liftM appendItem (getText xs) `ap` loadTodoFile `ap` (getItem i)
   replaceTodoFile newTodoFile
   reportEvents events
-  where getText [] = throwError $ strMsg "Must provide text to append"
+  where getText [] = throwError "Must provide text to append"
         getText ys = return $ unwords ys
 
 
@@ -159,7 +159,7 @@ cmdPrepend (i:xs) = do
   (newTodoFile, events) <- liftM prependItem (getText xs) `ap` loadTodoFile `ap` (getItem i)
   replaceTodoFile newTodoFile
   reportEvents events
-  where getText [] = throwError $ strMsg "Must provide text to prepend"
+  where getText [] = throwError "Must provide text to prepend"
         getText ys = return $ unwords ys
 
 
@@ -196,24 +196,24 @@ _colorizeTodo i t
   where todoText = fromText $ pack $ formatTodo i t
 
 
-getItems :: (Error e, MonadError e m) => [String] -> m [Int]
-getItems [] = throwError $ strMsg "No items specified"
+getItems :: MonadError String m => [String] -> m [Int]
+getItems [] = throwError "No items specified"
 getItems xs = mapM getItem xs
 
 
-getItem :: (Error e, MonadError e m) => String -> m Int
+getItem :: MonadError String m => String -> m Int
 getItem x =
   case readMaybe x of
     Just i -> return i
-    Nothing -> throwError $ strMsg $ "Invalid number: " ++ x
+    Nothing -> throwError $ "Invalid number: " ++ x
 
 
-getPriority :: (Error e, MonadError e m) => String -> m Priority
+getPriority :: MonadError String m => String -> m Priority
 getPriority (c:[]) =
   case makePriority c of
     Just p  -> return p
     Nothing -> getPriority []
-getPriority x      = throwError $ strMsg $ "Invalid priority: " ++ x
+getPriority x      = throwError $ "Invalid priority: " ++ x
 
 
 -- XXX: Making this separate because an atomic write would be better, but I
@@ -228,7 +228,7 @@ loadTodoFile = do
   expanded <- liftIO $ expandUser path
   contents <- liftIO $ readFile expanded
   case parseTodoFile expanded contents of
-    Left e -> (throwError . strMsg . show) e
+    Left e -> (throwError . show) e
     Right r -> return r
 
 

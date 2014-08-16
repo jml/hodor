@@ -1,7 +1,8 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Hodor.CommandLine where
 
-import Control.Monad.Error (Error, ErrorT, MonadError, runErrorT, strMsg, throwError)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Except
 import qualified Data.Map as M
 import System.Console.GetOpt
 import System.Environment (getArgs)
@@ -31,6 +32,9 @@ data Flag = ConfigFile (Maybe FilePath)
           | DoneFile (Maybe FilePath)
 
 
+type UsageError = String
+
+
 options :: [OptDescr Flag]
 options =
     [ Option ['t'] ["todo-file"] (OptArg TodoFile "FILE") "location of todo file"
@@ -39,15 +43,15 @@ options =
     ]
 
 
-hodorOpts :: (Error e, MonadError e m) => [String] -> m ([Flag], [String])
+hodorOpts :: MonadError UsageError m => [String] -> m ([Flag], [String])
 hodorOpts argv =
   case getOpt RequireOrder options argv of
     (o,n,[]  ) -> return (o,n)
     (_,_,errs) -> throwError (usageError errs)
 
 
-usageError :: (Error e) => [String] -> e
-usageError errs = strMsg (concat errs ++ usageInfo header options)
+usageError :: [String] -> UsageError
+usageError errs = concat errs ++ usageInfo header options
                   where header = "Usage: hodor [OPTION...] "
 
 
@@ -99,7 +103,7 @@ commands = M.fromList [
   ]
 
 
-getCommand :: (Error e, MonadError e m) => Maybe String -> [String] -> m (HodorCommand, [String])
+getCommand :: MonadError UsageError m => Maybe String -> [String] -> m (HodorCommand, [String])
 getCommand _ (name:rest) =
   case M.lookup name commands of
     Just command -> return (command, rest)
@@ -109,7 +113,7 @@ getCommand Nothing    _  = throwError $ usageError ["Must specify a command\n"]
 
 
 -- XXX: There *must* be some other way to do this.
-eitherToError :: (Error e, MonadError e m) => Either e a -> m a
+eitherToError :: (MonadError e m) => Either e a -> m a
 eitherToError (Right x) = return x
 eitherToError (Left x)  = throwError x
 
@@ -117,7 +121,7 @@ eitherToError (Left x)  = throwError x
 main :: IO ()
 main = do
   argv <- getArgs
-  result <- runErrorT $ do
+  result <- runExceptT $ do
     (opts, args) <- hodorOpts argv
     cfg <- liftIO $ getHodorConfiguration opts
     (cmd, rest) <- getCommand (defaultCommand cfg) args
