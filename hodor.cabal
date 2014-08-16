@@ -19,14 +19,13 @@ executable hodor
   main-is:           Main.hs
   -- other-modules:       
   -- other-extensions:    
-  build-depends:       base >=4.6 && <4.7
-                       , time >=1.4 && <1.5
-                       , parsec >=3.1 && <3.2
-                       , transformers >=0.3 && <0.4
+  build-depends:       base
+                       , time >=1.4
+                       , parsec >=3.1
                        , unix
                        , directory
                        , containers
-                       , mtl
+                       , mtl >= 2.2
                        , vector
                        , regex-compat
                        , yaml

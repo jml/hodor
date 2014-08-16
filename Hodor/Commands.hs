@@ -17,7 +17,7 @@ import Data.Time (
   zonedTimeToLocalTime
   )
 import GHC.Exts (sortWith)
-import System.Console.Rainbow
+import Rainbow
 import Text.Printf (printf)
 import Text.Read (readMaybe)
 import Text.Regex
@@ -190,9 +190,9 @@ _printTodosColor = liftIO . mapM_ (putChunkLn . uncurry _colorizeTodo) . sortWit
 
 _colorizeTodo :: Int -> TodoItem -> Chunk
 _colorizeTodo i t
-  | isDone t      = todoText <> c256_f_grey <> c8_f_magenta
-  | hasPriority t = todoText <> f_white <> bold
-  | otherwise     = todoText <> f_white
+  | isDone t      = todoText <> fore grey <> fore magenta8
+  | hasPriority t = todoText <> fore white <> bold
+  | otherwise     = todoText <> fore white
   where todoText = fromText $ pack $ formatTodo i t
 
 
