@@ -63,8 +63,15 @@ import Hodor.Types (
 
 -- XXX: Revisit error type (maybe we should have something more abstracted
 -- than String)
-newtype HodorM a = HM { unHM :: ReaderT Config (ExceptT String IO) a }
-                   deriving (Functor, Applicative, Monad, MonadIO, MonadReader Config, MonadError String)
+newtype HodorM a =
+  HM { unHM :: ReaderT Config (ExceptT String IO) a }
+  deriving (
+    Functor
+    , Applicative
+    , Monad
+    , MonadIO
+    , MonadReader Config
+    , MonadError String)
 
 type HodorCommand = [String] -> HodorM ()
 
