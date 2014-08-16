@@ -81,6 +81,7 @@ commands = M.fromList [
   , ("ls",   cmdList)
   , ("lsp", cmdListPriority)
   , ("add",  cmdAdd)
+  , ("a",  cmdAdd)
   , ("do", cmdMarkAsDone)
   , ("archive", cmdArchive)
   , ("lsc", cmdListContexts)
