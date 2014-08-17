@@ -29,10 +29,13 @@ globalOptions = HodorOptions
       <*> optional (subcommands hodorCommands)
 
 
+-- XXX: Move this to a utility section, away from the hodor-specific
+-- configuration.
 subcommands :: [(String, ParserInfo a)] -> Parser a
 subcommands cmds = subparser $ mconcat $ map (uncurry command) cmds
 
 
+-- XXX: Find out if there's a better way to do this.
 invertAssoc :: [(a, [b])] -> [(b, a)]
 invertAssoc alist =
   concatMap reverseFlatten alist

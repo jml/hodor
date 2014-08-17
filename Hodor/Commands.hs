@@ -114,6 +114,7 @@ dispatchCommand (AppendCommand item wds)     = cmdAppend item wds
 dispatchCommand (PrependCommand item wds)    = cmdPrepend item wds
 
 
+-- XXX: Negative filters have been broken by switch to optparse-applicative.
 cmdList :: [String] -> HodorM ()
 cmdList args =  listItemsCommand (andP matchers)
   where
