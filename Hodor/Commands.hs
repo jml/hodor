@@ -75,6 +75,7 @@ newtype HodorM a =
 
 data Command =
   ListCommand [String] |
+  ListPriorityCommand |
   AddCommand [String] |
   DoCommand [Int] |
   UndoCommand [Int] |
@@ -94,6 +95,7 @@ runHodorM x cfg = runExceptT $ runReaderT (unHM x) cfg
 
 dispatchCommand :: Command -> HodorM ()
 dispatchCommand (ListCommand args) = cmdList args
+dispatchCommand ListPriorityCommand = cmdListPriority
 dispatchCommand (AddCommand args) = cmdAdd args
 dispatchCommand (DoCommand items) = cmdMarkAsDone items
 dispatchCommand (UndoCommand items) = cmdUndo items

@@ -29,6 +29,7 @@ globalOptions = Options
         <> command "undo" (info undoOptions (progDesc "mark item as not done"))
         <> command "archive" (info (pure ArchiveCommand) (progDesc "archive done items"))
         <> command "lsc" (info (pure ListContextCommand) (progDesc "list contexts"))
+        <> command "lsp" (info (pure ListPriorityCommand) (progDesc "list items of high priority"))
         <> command "lsprj" (info (pure ListProjectCommand) (progDesc "list projects"))
         <> command "pri" (info priOptions (progDesc "prioritize an item"))
         <> command "depri" (info depriOptions (progDesc "de-prioritize an item"))
@@ -38,7 +39,6 @@ globalOptions = Options
 -- XXX: Add aliases
 -- XXX: Maybe move stuff into 'where' of globalOptions
 -- XXX: Specific reader for priority (i.e. delete Commands.getPriority)
--- XXX: Missing listpriority
 
 itemOption :: Parser Int
 itemOption = argument auto (metavar "ITEM")
