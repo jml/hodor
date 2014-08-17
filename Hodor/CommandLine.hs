@@ -9,7 +9,7 @@ import Hodor.Config
 import Hodor.Types (Priority, makePriority)
 
 
-data Options = Options {
+data HodorOptions = HodorOptions {
   optTodoFile :: Maybe String,
   optDoneFile :: Maybe String,
   optConfigFile :: Maybe String,
@@ -17,14 +17,17 @@ data Options = Options {
   } deriving (Show)
 
 
-globalOptions :: Parser Options
-globalOptions = Options
+hodorInfo :: ParserInfo HodorOptions
+hodorInfo = info (helper <*> globalOptions) (fullDesc <> header "hodor - a simple-minded todo list")
+
+
+globalOptions :: Parser HodorOptions
+globalOptions = HodorOptions
       <$> optional (strOption (long "todo-file" <> metavar "FILE" <> help "location of todo file"))
       <*> optional (strOption (long "done-file" <> metavar "FILE" <> help "location of done file"))
       <*> optional (strOption (long "config-file" <> metavar "FILE" <> help "location of config file"))
       <*> optional (subcommands hodorCommands)
 
--- XXX: Implement a default command
 
 subcommands :: [(String, ParserInfo a)] -> Parser a
 subcommands cmds = subparser $ mconcat $ map (uncurry command) cmds
@@ -92,7 +95,7 @@ defaultConfigFile :: FilePath
 defaultConfigFile = "~/.hodor/config.yaml"
 
 
-updateConfiguration :: Config -> Options -> Config
+updateConfiguration :: Config -> HodorOptions -> Config
 updateConfiguration config opts =
   config {
     todoFilePath = fromMaybe (todoFilePath config) (optTodoFile opts),
@@ -100,20 +103,39 @@ updateConfiguration config opts =
     }
 
 
-getHodorConfiguration :: Options -> IO Config
+getHodorConfiguration :: HodorOptions -> IO Config
 getHodorConfiguration opts = do
   let configFilePath = fromMaybe defaultConfigFile (optConfigFile opts)
   baseConfig <- loadConfigFile configFilePath
   return $ updateConfiguration baseConfig opts
 
 
+execParserWithArgs :: ParserInfo a -> [String] -> IO a
+execParserWithArgs opts args =
+  handleParseResult $ execParserPure (prefs idm) opts args
+
+
+getCommand :: Config -> HodorOptions -> IO Command
+getCommand cfg opts =
+  case optCommand opts of
+    Just cmd -> return cmd
+    Nothing  ->
+      getCommandByName $ case defaultCommand cfg of
+        Just dflt -> [dflt]
+        Nothing   -> []
+  where
+    -- XXX: A bit of a hack to a) extract command by name; b) display some
+    -- kind of error on result.
+    getCommandByName name =
+      execParserWithArgs (info (subcommands hodorCommands) idm) name
+
+
 main :: IO ()
 main = do
-  opteroos <- execParser opts
+  opteroos <- execParser hodorInfo
   config <- getHodorConfiguration opteroos
-  result <- runHodorM (dispatchCommand (fromMaybe (ListCommand []) (optCommand opteroos))) config
+  cmd <- getCommand config opteroos
+  result <-runHodorM (dispatchCommand cmd) config
   case result of
     Left e -> ioError (userError e)
     Right _ -> return ()
-  where
-    opts = info (helper <*> globalOptions) (fullDesc <> header "hodor - a simple-minded todo list")
