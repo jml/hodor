@@ -46,55 +46,35 @@ globalOptions = Options
         <> command "undo" undo
         )
       where
-        add     = (info addOptions (progDesc "add todo item"))
-        archive = (info (pure ArchiveCommand) (progDesc "archive done items"))
-        append  = (info appendOptions (progDesc "append text to an item"))
-        depri   = (info depriOptions (progDesc "de-prioritize an item"))
-        doCmd   = (info doOptions (progDesc "mark item as done"))
-        list    = (info listOptions (progDesc "list todo items"))
-        lsc     = (info (pure ListContextCommand) (progDesc "list contexts"))
-        lsp     = (info (pure ListPriorityCommand) (progDesc "list items of high priority"))
-        lsprj   = (info (pure ListProjectCommand) (progDesc "list projects"))
-        prepend = (info prependOptions (progDesc "prepend text to an item"))
-        pri     = (info priOptions (progDesc "prioritize an item"))
-        undo    = (info undoOptions (progDesc "mark item as not done"))
+        add     = info addOptions (progDesc "add todo item")
+        archive = info (pure ArchiveCommand) (progDesc "archive done items")
+        append  = info appendOptions (progDesc "append text to an item")
+        depri   = info depriOptions (progDesc "de-prioritize an item")
+        doCmd   = info doOptions (progDesc "mark item as done")
+        list    = info listOptions (progDesc "list todo items")
+        lsc     = info (pure ListContextCommand) (progDesc "list contexts")
+        lsp     = info (pure ListPriorityCommand) (progDesc "list items of high priority")
+        lsprj   = info (pure ListProjectCommand) (progDesc "list projects")
+        prepend = info prependOptions (progDesc "prepend text to an item")
+        pri     = info priOptions (progDesc "prioritize an item")
+        undo    = info undoOptions (progDesc "mark item as not done")
 
--- XXX: Maybe move stuff into 'where' of globalOptions
+        addOptions     = AddCommand <$> wordsOption
+        appendOptions  = AppendCommand <$> itemOption <*> wordsOption
+        depriOptions   = DeprioritizeCommand <$> itemOption
+        doOptions      = DoCommand <$> itemsOption
+        listOptions    = ListCommand <$> many (argument str (metavar "FILTERS..."))
+        prependOptions = PrependCommand <$> itemOption <*> wordsOption
+        priOptions     = PrioritizeCommand <$> itemOption <*> (argument str (metavar "PRIORITY"))
+        undoOptions    = UndoCommand <$> itemsOption
+
+        itemOption = argument auto (metavar "ITEM")
+        itemsOption = some itemOption
+        wordsOption = many (argument str (metavar "WORDS..."))
+
+
 -- XXX: Specific reader for priority (i.e. delete Commands.getPriority)
 
-itemOption :: Parser Int
-itemOption = argument auto (metavar "ITEM")
-
-itemsOption :: Parser [Int]
-itemsOption = some itemOption
-
-wordsOption :: Parser [String]
-wordsOption = some (argument str (metavar "WORDS..."))
-
-addOptions :: Parser Command
-addOptions = AddCommand <$> wordsOption
-
-doOptions = DoCommand <$> itemsOption
-
-undoOptions = UndoCommand <$> itemsOption
-
-depriOptions = DeprioritizeCommand <$> itemOption
-
-listOptions :: Parser Command
-listOptions = ListCommand <$> many (argument str (metavar "FILTERS..."))
-
-priOptions :: Parser Command
-priOptions = PrioritizeCommand <$> itemOption <*> (argument str (metavar "PRIORITY"))
-
-appendOptions :: Parser Command
-appendOptions = AppendCommand <$> itemOption <*> wordsOption
-
-prependOptions :: Parser Command
-prependOptions = PrependCommand <$> itemOption <*> wordsOption
-
-
--- Something that turns options into config
--- Significantly change how we run the commands
 
 defaultConfigFile :: FilePath
 defaultConfigFile = "~/.hodor/config.yaml"
