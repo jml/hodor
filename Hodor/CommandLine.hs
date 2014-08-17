@@ -30,29 +30,26 @@ subcommands :: [(String, ParserInfo a)] -> Parser a
 subcommands cmds = subparser $ mconcat $ map (uncurry command) cmds
 
 
+invertAssoc :: [(a, [b])] -> [(b, a)]
+invertAssoc alist =
+  concatMap reverseFlatten alist
+  where reverseFlatten (x, ys) = [(y, x) | y <- ys]
+
+
 hodorCommands :: [(String, ParserInfo Command)]
-hodorCommands = [
-  ("add", add),
-  ("a", add),
-  ("append", append),
-  ("app", append),
-  ("archive", archive),
-  ("depri", depri),
-  ("dp", depri),
-  ("do", doCmd),
-  ("list", list),
-  ("ls", list),
-  ("listcon", lsc),
-  ("lsc", lsc),
-  ("listpri", lsp),
-  ("lsp", lsp),
-  ("listproj", lsprj),
-  ("lsprj", lsprj),
-  ("prepend", prepend),
-  ("prep", prepend),
-  ("pri", pri),
-  ("p", pri),
-  ("undo", undo)
+hodorCommands = invertAssoc [
+  (add,     ["add",      "a"]),
+  (append,  ["append",   "app"]),
+  (archive, ["archive"]),
+  (depri,   ["depri",    "dp"]),
+  (doCmd,   ["do"]),
+  (list,    ["list",     "ls"]),
+  (lsc,     ["listcon",  "lsc"]),
+  (lsp,     ["listpri",  "lsp"]),
+  (lsprj,   ["listproj", "lsprj"]),
+  (prepend, ["prepend",  "prep"]),
+  (pri,     ["pri",      "p"]),
+  (undo,    ["undo"])
   ]
   where
     add     = info addOptions (progDesc "add todo item")
