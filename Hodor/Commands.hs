@@ -231,6 +231,11 @@ _colorizeTodo i t
 
 
 -- XXX: There's probably a really nice table display library out there.
+-- TODO:
+-- - make (A) priority red
+-- - make contexts blue
+-- - make projects green
+-- - make it possible to configure colours for contexts and projects
 _displayTodo :: Int -> TodoItem -> String
 _displayTodo i t =
   concat $ case (dateCompleted t) of
