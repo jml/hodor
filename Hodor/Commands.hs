@@ -93,18 +93,18 @@ runHodorM x cfg = runExceptT $ runReaderT (unHM x) cfg
 
 
 dispatchCommand :: Command -> HodorM ()
-dispatchCommand (ListCommand args) = cmdList args
-dispatchCommand ListPriorityCommand = cmdListPriority
-dispatchCommand (AddCommand args) = cmdAdd args
-dispatchCommand (DoCommand items) = cmdMarkAsDone items
-dispatchCommand (UndoCommand items) = cmdUndo items
-dispatchCommand ArchiveCommand = cmdArchive
-dispatchCommand ListContextCommand = cmdListContexts
-dispatchCommand ListProjectCommand = cmdListProjects
+dispatchCommand (ListCommand args)           = cmdList args
+dispatchCommand ListPriorityCommand          = cmdListPriority
+dispatchCommand (AddCommand args)            = cmdAdd args
+dispatchCommand (DoCommand items)            = cmdMarkAsDone items
+dispatchCommand (UndoCommand items)          = cmdUndo items
+dispatchCommand ArchiveCommand               = cmdArchive
+dispatchCommand ListContextCommand           = cmdListContexts
+dispatchCommand ListProjectCommand           = cmdListProjects
 dispatchCommand (PrioritizeCommand item pri) = cmdPrioritize item pri
-dispatchCommand (DeprioritizeCommand item) = cmdDeprioritize item
-dispatchCommand (AppendCommand item wds) = cmdAppend item wds
-dispatchCommand (PrependCommand item wds) = cmdPrepend item wds
+dispatchCommand (DeprioritizeCommand item)   = cmdDeprioritize item
+dispatchCommand (AppendCommand item wds)     = cmdAppend item wds
+dispatchCommand (PrependCommand item wds)    = cmdPrepend item wds
 
 
 cmdList :: [String] -> HodorM ()
