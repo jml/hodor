@@ -19,7 +19,6 @@ import Data.Time (
 import GHC.Exts (sortWith)
 import Rainbow
 import Text.Printf (printf)
-import Text.Read (readMaybe)
 import Text.Regex
 
 import Hodor (
@@ -227,18 +226,6 @@ _colorizeTodo i t
   | hasPriority t = todoText <> fore white <> bold
   | otherwise     = todoText <> fore white
   where todoText = fromText $ pack $ formatTodo i t
-
-
-getItems :: MonadError String m => [String] -> m [Int]
-getItems [] = throwError "No items specified"
-getItems xs = mapM getItem xs
-
-
-getItem :: MonadError String m => String -> m Int
-getItem x =
-  case readMaybe x of
-    Just i -> return i
-    Nothing -> throwError $ "Invalid number: " ++ x
 
 
 getPriority :: MonadError String m => String -> m Priority
