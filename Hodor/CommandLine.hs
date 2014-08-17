@@ -13,7 +13,7 @@ data Options = Options {
   optTodoFile :: Maybe String,
   optDoneFile :: Maybe String,
   optConfigFile :: Maybe String,
-  optCommand :: Command
+  optCommand :: Maybe Command
   } deriving (Show)
 
 
@@ -22,8 +22,9 @@ globalOptions = Options
       <$> optional (strOption (long "todo-file" <> metavar "FILE" <> help "location of todo file"))
       <*> optional (strOption (long "done-file" <> metavar "FILE" <> help "location of done file"))
       <*> optional (strOption (long "config-file" <> metavar "FILE" <> help "location of config file"))
-      <*> subcommands hodorCommands
+      <*> optional (subcommands hodorCommands)
 
+-- XXX: Implement a default command
 
 subcommands :: [(String, ParserInfo a)] -> Parser a
 subcommands cmds = subparser $ mconcat $ map (uncurry command) cmds
@@ -110,10 +111,9 @@ main :: IO ()
 main = do
   opteroos <- execParser opts
   config <- getHodorConfiguration opteroos
-  result <- runHodorM (dispatchCommand (optCommand opteroos)) config
+  result <- runHodorM (dispatchCommand (fromMaybe (ListCommand []) (optCommand opteroos))) config
   case result of
     Left e -> ioError (userError e)
     Right _ -> return ()
-  where opts = info (helper <*> globalOptions) (
-          fullDesc
-          <> header "hodor - a simple-minded todo list" )
+  where
+    opts = info (helper <*> globalOptions) (fullDesc <> header "hodor - a simple-minded todo list")
