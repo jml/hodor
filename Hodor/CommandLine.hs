@@ -2,131 +2,101 @@
 
 module Hodor.CommandLine where
 
-import Control.Monad.Except
-import qualified Data.Map as M
-import System.Console.GetOpt
-import System.Environment (getArgs)
+import Data.Maybe (fromMaybe)
+import Options.Applicative
 
-
-import Hodor.Commands (
-  HodorCommand,
-  cmdAdd,
-  cmdAppend,
-  cmdArchive,
-  cmdDeprioritize,
-  cmdList,
-  cmdListContexts,
-  cmdListPriority,
-  cmdListProjects,
-  cmdMarkAsDone,
-  cmdPrepend,
-  cmdPrioritize,
-  cmdUndo,
-  runHodorCommand
-  )
+import Hodor.Commands
 import Hodor.Config
 
 
-data Flag = ConfigFile (Maybe FilePath)
-          | TodoFile (Maybe FilePath)
-          | DoneFile (Maybe FilePath)
+data Options = Options {
+  optTodoFile :: Maybe String,
+  optDoneFile :: Maybe String,
+  optConfigFile :: Maybe String,
+  optCommand :: Command
+  } deriving (Show)
 
 
-type UsageError = String
+globalOptions :: Parser Options
+globalOptions = Options
+      <$> optional (strOption (long "todo-file" <> metavar "FILE" <> help "location of todo file"))
+      <*> optional (strOption (long "done-file" <> metavar "FILE" <> help "location of done file"))
+      <*> optional (strOption (long "config-file" <> metavar "FILE" <> help "location of config file"))
+      <*> subparser (
+        command "list" (info listOptions (progDesc "list todo items"))
+        <> command "add" (info addOptions (progDesc "add todo item"))
+        <> command "do" (info doOptions (progDesc "mark item as done"))
+        <> command "undo" (info undoOptions (progDesc "mark item as not done"))
+        <> command "archive" (info (pure ArchiveCommand) (progDesc "archive done items"))
+        <> command "lsc" (info (pure ListContextCommand) (progDesc "list contexts"))
+        <> command "lsp" (info (pure ListProjectCommand) (progDesc "list projects"))
+        <> command "pri" (info priOptions (progDesc "prioritize an item"))
+        <> command "depri" (info depriOptions (progDesc "de-prioritize an item"))
+        <> command "app" (info appendOptions (progDesc "append text to an item"))
+        <> command "pre" (info prependOptions (progDesc "prepend text to an item")))
 
 
-options :: [OptDescr Flag]
-options =
-    [ Option ['t'] ["todo-file"] (OptArg TodoFile "FILE") "location of todo file"
-    , Option ['d'] ["done-file"] (OptArg DoneFile "FILE") "location of done file"
-    , Option ['c'] ["config-file"] (OptArg ConfigFile "FILE") "location of config file"
-    ]
+itemOption :: Parser Int
+itemOption = argument auto (metavar "ITEM")
+
+itemsOption :: Parser [Int]
+itemsOption = some itemOption
+
+wordsOption :: Parser [String]
+wordsOption = some (argument str (metavar "WORDS..."))
+
+addOptions :: Parser Command
+addOptions = AddCommand <$> wordsOption
+
+doOptions = DoCommand <$> itemsOption
+
+undoOptions = UndoCommand <$> itemsOption
+
+depriOptions = DeprioritizeCommand <$> itemOption
+
+listOptions :: Parser Command
+listOptions = ListCommand <$> many (argument str (metavar "FILTERS..."))
+
+priOptions :: Parser Command
+priOptions = PrioritizeCommand <$> itemOption <*> (argument str (metavar "PRIORITY"))
+
+appendOptions :: Parser Command
+appendOptions = AppendCommand <$> itemOption <*> wordsOption
+
+prependOptions :: Parser Command
+prependOptions = PrependCommand <$> itemOption <*> wordsOption
 
 
-hodorOpts :: MonadError UsageError m => [String] -> m ([Flag], [String])
-hodorOpts argv =
-  case getOpt RequireOrder options argv of
-    (o,n,[]  ) -> return (o,n)
-    (_,_,errs) -> throwError (usageError errs)
-
-
-usageError :: [String] -> UsageError
-usageError errs = concat errs ++ usageInfo hdr options
-                  where hdr = "Usage: hodor [OPTION...] "
-
+-- Something that turns options into config
+-- Significantly change how we run the commands
 
 defaultConfigFile :: FilePath
 defaultConfigFile = "~/.hodor/config.yaml"
 
 
-getConfigFilePath :: FilePath -> [Flag] -> FilePath
-getConfigFilePath defaultPath flags =
-  case [ path | ConfigFile path <- flags ] of
-    (Just path):[] -> path
-    _              -> defaultPath
+updateConfiguration :: Config -> Options -> Config
+updateConfiguration config opts =
+  config {
+    todoFilePath = fromMaybe (todoFilePath config) (optTodoFile opts),
+    doneFilePath = fromMaybe (doneFilePath config) (optDoneFile opts)
+    }
 
 
-updateConfiguration :: Config -> Flag -> Config
-updateConfiguration config (TodoFile (Just path)) = config { todoFilePath = path }
-updateConfiguration config (DoneFile (Just path)) = config { doneFilePath = path }
-updateConfiguration config _                      = config
-
-
-getHodorConfiguration :: [Flag] -> IO Config
+getHodorConfiguration :: Options -> IO Config
 getHodorConfiguration opts = do
-  let configFilePath = getConfigFilePath defaultConfigFile opts
+  let configFilePath = fromMaybe defaultConfigFile (optConfigFile opts)
   baseConfig <- loadConfigFile configFilePath
-  return $ foldl updateConfiguration baseConfig opts
-
-
-commands :: M.Map String HodorCommand
-commands = M.fromList [
-  ("list", cmdList)
-  , ("ls",   cmdList)
-  , ("lsp", cmdListPriority)
-  , ("add",  cmdAdd)
-  , ("a",  cmdAdd)
-  , ("do", cmdMarkAsDone)
-  , ("archive", cmdArchive)
-  , ("lsc", cmdListContexts)
-  , ("listcon", cmdListContexts)
-  , ("lsprj", cmdListProjects)
-  , ("undo", cmdUndo)
-  , ("pri", cmdPrioritize)
-  , ("p", cmdPrioritize)
-  , ("depri", cmdDeprioritize)
-  , ("dp", cmdDeprioritize)
-  , ("append", cmdAppend)
-  , ("app", cmdAppend)
-  , ("prepend", cmdPrepend)
-  , ("pre", cmdPrepend)
-  ]
-
-
-getCommand :: MonadError UsageError m => Maybe String -> [String] -> m (HodorCommand, [String])
-getCommand _ (name:rest) =
-  case M.lookup name commands of
-    Just cmd -> return (cmd, rest)
-    Nothing -> throwError $ usageError ["No such command: ", name, "\n"]
-getCommand (Just cmd) [] = getCommand Nothing [cmd]
-getCommand Nothing    _  = throwError $ usageError ["Must specify a command\n"]
-
-
--- XXX: There *must* be some other way to do this.
-eitherToError :: (MonadError e m) => Either e a -> m a
-eitherToError (Right x) = return x
-eitherToError (Left x)  = throwError x
+  return $ updateConfiguration baseConfig opts
 
 
 main :: IO ()
 main = do
-  argv <- getArgs
-  result <- runExceptT $ do
-    (opts, args) <- hodorOpts argv
-    cfg <- liftIO $ getHodorConfiguration opts
-    (cmd, rest) <- getCommand (defaultCommand cfg) args
-    r <- liftIO $ runHodorCommand cmd cfg rest
-    eitherToError r
+  opteroos <- execParser opts
+  config <- getHodorConfiguration opteroos
+  result <- runHodorM (dispatchCommand (optCommand opteroos)) config
   case result of
-    Left e -> (ioError . userError) e
+    Left e -> ioError (userError e)
     Right _ -> return ()
+  where opts = info (helper <*> globalOptions) (
+          fullDesc
+          <> header "hodor - a simple-minded todo list" )

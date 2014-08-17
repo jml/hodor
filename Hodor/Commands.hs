@@ -73,13 +73,41 @@ newtype HodorM a =
     , MonadReader Config
     , MonadError String)
 
-type HodorCommand = [String] -> HodorM ()
 
-runHodorCommand :: HodorCommand -> Config -> [String] -> IO (Either String ())
-runHodorCommand cmd cfg rest = runExceptT $ runReaderT (unHM (cmd rest)) cfg
+data Command =
+  ListCommand [String] |
+  AddCommand [String] |
+  DoCommand [Int] |
+  UndoCommand [Int] |
+  ArchiveCommand |
+  ListContextCommand |
+  ListProjectCommand |
+  PrioritizeCommand Int String |
+  DeprioritizeCommand Int |
+  AppendCommand Int [String] |
+  PrependCommand Int [String]
+  deriving (Show)
 
 
-cmdList :: HodorCommand
+runHodorM :: HodorM a -> Config -> IO (Either String a)
+runHodorM x cfg = runExceptT $ runReaderT (unHM x) cfg
+
+
+dispatchCommand :: Command -> HodorM ()
+dispatchCommand (ListCommand args) = cmdList args
+dispatchCommand (AddCommand args) = cmdAdd args
+dispatchCommand (DoCommand items) = cmdMarkAsDone items
+dispatchCommand (UndoCommand items) = cmdUndo items
+dispatchCommand ArchiveCommand = cmdArchive
+dispatchCommand ListContextCommand = cmdListContexts
+dispatchCommand ListProjectCommand = cmdListProjects
+dispatchCommand (PrioritizeCommand item pri) = cmdPrioritize item pri
+dispatchCommand (DeprioritizeCommand item) = cmdDeprioritize item
+dispatchCommand (AppendCommand item wds) = cmdAppend item wds
+dispatchCommand (PrependCommand item wds) = cmdPrepend item wds
+
+
+cmdList :: [String] -> HodorM ()
 cmdList args =  listItemsCommand (andP matchers)
   where
     matchers = map matcher (filter (not . null) args)
@@ -88,8 +116,8 @@ cmdList args =  listItemsCommand (andP matchers)
     matchTodoWithRegex arg = matchRegex (mkRegex arg) . unparse
 
 
-cmdListPriority :: HodorCommand
-cmdListPriority _ = listItemsCommand hasPriority
+cmdListPriority :: HodorM ()
+cmdListPriority = listItemsCommand hasPriority
 
 
 listItemsCommand :: (TodoItem -> Bool) -> HodorM ()
@@ -102,7 +130,7 @@ listItemsCommand p = do
   reportEvents [Listed todoFile (length items)]
 
 
-cmdAdd :: HodorCommand
+cmdAdd :: [String] -> HodorM ()
 cmdAdd args = do
   (item, events) <- liftM addItem getDateAdded `ap` loadTodoFile `ap` (return args)
   -- ACTION: append item
@@ -110,8 +138,8 @@ cmdAdd args = do
   reportEvents events
 
 
-cmdArchive :: HodorCommand
-cmdArchive _ = do
+cmdArchive :: HodorM ()
+cmdArchive = do
   todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = archive todoFile
       doneString = unlines . map unparse $ doneItems
@@ -122,61 +150,59 @@ cmdArchive _ = do
   reportEvents [Archived newTodoFile]
 
 
-cmdMarkAsDone :: HodorCommand
-cmdMarkAsDone args = do
-  (newTodoFile, doneItems) <- liftM doItems (liftIO today) `ap` loadTodoFile `ap` getItems args
+cmdMarkAsDone :: [Int] -> HodorM ()
+cmdMarkAsDone items = do
+  (newTodoFile, doneItems) <- liftM doItems (liftIO today) `ap` loadTodoFile `ap` (return items)
   replaceTodoFile newTodoFile
   reportEvents doneItems
 
 
-cmdUndo :: HodorCommand
-cmdUndo args = do
-  (newTodoFile, doneItems) <- liftM undoItems loadTodoFile `ap` getItems args
+cmdUndo :: [Int] -> HodorM ()
+cmdUndo items = do
+  (newTodoFile, doneItems) <- liftM undoItems loadTodoFile `ap` (return items)
   replaceTodoFile newTodoFile
   reportEvents doneItems
 
 
-cmdPrioritize :: HodorCommand
-cmdPrioritize (i:p:[]) = do
-  (newTodoFile, events) <- liftM prioritizeItem (getPriority p) `ap` loadTodoFile `ap` (getItem i)
+cmdPrioritize :: Int -> String -> HodorM ()
+cmdPrioritize item p = do
+  (newTodoFile, events) <- liftM prioritizeItem (getPriority p) `ap` loadTodoFile `ap` (return item)
   replaceTodoFile newTodoFile
   reportEvents events
-cmdPrioritize _        = throwError "Expect ITEM# PRIORITY"
 
 
-cmdDeprioritize :: HodorCommand
-cmdDeprioritize (i:[]) = do
-  (newTodoFile, events) <- liftM deprioritizeItem loadTodoFile `ap` (getItem i)
+cmdDeprioritize :: Int -> HodorM ()
+cmdDeprioritize item = do
+  (newTodoFile, events) <- liftM deprioritizeItem loadTodoFile `ap` (return item)
   replaceTodoFile newTodoFile
   reportEvents events
-cmdDeprioritize _        = throwError "Expect ITEM#"
 
 
-cmdAppend :: HodorCommand
-cmdAppend (i:xs) = do
-  (newTodoFile, events) <- liftM appendItem (getText xs) `ap` loadTodoFile `ap` (getItem i)
+cmdAppend :: Int -> [String] -> HodorM ()
+cmdAppend item xs = do
+  (newTodoFile, events) <- liftM appendItem (getText xs) `ap` loadTodoFile `ap` (return item)
   replaceTodoFile newTodoFile
   reportEvents events
   where getText [] = throwError "Must provide text to append"
         getText ys = return $ unwords ys
 
 
-cmdPrepend :: HodorCommand
-cmdPrepend (i:xs) = do
-  (newTodoFile, events) <- liftM prependItem (getText xs) `ap` loadTodoFile `ap` (getItem i)
+cmdPrepend :: Int -> [String] -> HodorM ()
+cmdPrepend item xs = do
+  (newTodoFile, events) <- liftM prependItem (getText xs) `ap` loadTodoFile `ap` (return item)
   replaceTodoFile newTodoFile
   reportEvents events
   where getText [] = throwError "Must provide text to prepend"
         getText ys = return $ unwords ys
 
 
-cmdListContexts :: HodorCommand
-cmdListContexts _ = do
+cmdListContexts :: HodorM ()
+cmdListContexts = do
   liftM allContexts loadTodoFile >>= mapM_ (liftIO . putStrLn . format)
 
 
-cmdListProjects :: HodorCommand
-cmdListProjects _ = do
+cmdListProjects :: HodorM ()
+cmdListProjects = do
   liftM allProjects loadTodoFile >>= mapM_ (liftIO . putStrLn . format)
 
 
