@@ -1,10 +1,12 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Hodor.Commands where
 
 import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
+import Data.List (intersperse)
 import Data.Maybe (isJust, isNothing, fromMaybe)
 import Data.Monoid
 import Data.Text (pack)
@@ -53,6 +55,7 @@ import Hodor.Types (
   dateCompleted,
   dateCreated,
   description,
+  getPriority,
   hasPriority,
   isDone,
   isPriority,
@@ -219,33 +222,46 @@ printTodos items = do
 
 
 _printTodosColor :: [(Int, TodoItem)] -> HodorM ()
-_printTodosColor = liftIO . mapM_ (putChunkLn . uncurry _colorizeTodo) . sortWith snd
+_printTodosColor todos = do
+  term <- liftIO termFromEnv
+  liftIO . mapM_ (putChunks term . uncurry _colorizeTodo) . sortWith snd $ todos
 
 
-_colorizeTodo :: Int -> TodoItem -> Chunk
+_colorizeTodo :: Int -> TodoItem -> [Chunk]
 _colorizeTodo i t
-  | isDone t      = todoText <> fore grey
-  | hasPriority t = todoText <> bold
+  | isDone t      = [mconcat todoText <> fore grey]
+  | hasPriority t = map (<> bold) todoText
   | otherwise     = todoText
-  where todoText = fromText $ pack $ _displayTodo i t
+  where todoText = _displayTodo i t
+
 
 
 -- XXX: There's probably a really nice table display library out there.
--- TODO:
--- - make (A) priority red
--- - make contexts blue
--- - make projects green
--- - make it possible to configure colours for contexts and projects
-_displayTodo :: Int -> TodoItem -> String
+-- XXX: make it possible to configure colours for specific contexts and projects
+-- XXX: The structure of this is kind of hideous: clean it up.
+_displayTodo :: Int -> TodoItem -> [Chunk]
 _displayTodo i t =
-  concat $ case (dateCompleted t) of
+  case (dateCompleted t) of
     Nothing -> [
-      printf "%02d " i, priorityBit, dateBit, " ", description t]
+      fromText $ pack $ printf "%02d " i,
+      priorityBit,
+      dateBit, " "] ++ descriptionChunks ++ ["\n"]
     Just completed -> [
-      printf "%02d  x  " i, unparse completed, unparse (dateCreated t), (description t)]
+      fromText $ pack $ printf "%02d  x  " i,
+      dateChunk completed,
+      " "] ++ descriptionChunks ++ ["\n"]
   where
-    dateBit = fromMaybe "          " (showGregorian <$> dateCreated t)
-    priorityBit = if (isPriority (priority t)) then unparse (priority t) else "    "
+    dateChunk = fromText . pack . showGregorian
+    dateBit = fromMaybe "          " (dateChunk <$> dateCreated t)
+    priorityBit =
+      case getPriority (priority t) of
+        Nothing  -> "    "
+        Just 'A' -> "(A) " <> fore red
+        Just x   -> fromText $ pack $ '(':x:") "
+    descriptionChunks = intersperse (fromText " ") $ map chunkWord (words $ description t)
+    chunkWord xs@('+':_) = (fromText $ pack xs) <> fore brightBlue
+    chunkWord xs@('@':_) = (fromText $ pack xs) <> fore green
+    chunkWord xs         = fromText $ pack xs
 
 
 -- XXX: Making this separate because an atomic write would be better, but I

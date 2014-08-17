@@ -40,6 +40,11 @@ isPriority (Pri _) = True
 isPriority _       = False
 
 
+getPriority :: Priority -> Maybe Char
+getPriority (Pri x) = Just x
+getPriority _       = Nothing
+
+
 data Project = Project String deriving (Eq, Ord, Show)
 
 
