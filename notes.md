@@ -1,7 +1,6 @@
 ## todo.txt
 
 * https://github.com/ginatrapani/todo.txt-cli/blob/master/todo.cfg
-* Add 'yaml' for yaml dependency
 
 ## Haskell things to try
 
@@ -24,12 +23,3 @@
 * http://stackoverflow.com/questions/13352205/what-are-free-monads
 * http://www.haskellforall.com/2012/07/purify-code-using-free-monads.html
 * http://hackage.haskell.org/package/comonad-transformers-1.7/docs/Control-Monad-Trans-Free.html
-
-### Errors
-
-* file:///Library/Haskell/doc/packages/mtl-2.1.2/doc/html/Control-Monad-Error.html#t:MonadError
-
-## Color formatting
-
-* http://hackage.haskell.org/package/ansi-terminal-0.5.0/docs/System-Console-ANSI.html
-* http://hackage.haskell.org/package/rainbow
