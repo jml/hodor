@@ -1,5 +1,5 @@
 x 2014-08-05 Add support for a configuration file @feature
-Add support for colored output @feature
+x 2014-08-17 Add support for colored output @feature
 Implement a report for todos by project @feature
 Implement a report for todos by context @feature
 x 2014-07-25 Set up some QuickCheck tests and use them to @test untested code

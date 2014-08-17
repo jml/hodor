@@ -218,10 +218,14 @@ _printTodosColor = liftIO . mapM_ (putChunkLn . uncurry _colorizeTodo) . sortWit
 
 _colorizeTodo :: Int -> TodoItem -> Chunk
 _colorizeTodo i t
-  | isDone t      = todoText <> fore grey <> fore magenta8
-  | hasPriority t = todoText <> fore white <> bold
-  | otherwise     = todoText <> fore white
-  where todoText = fromText $ pack $ formatTodo i t
+  | isDone t      = todoText <> fore grey
+  | hasPriority t = todoText <> bold
+  | otherwise     = todoText
+  where todoText = _displayTodo i t
+
+
+_displayTodo :: Int -> TodoItem -> Chunk
+_displayTodo i t = fromText $ pack $ formatTodo i t
 
 
 -- XXX: Making this separate because an atomic write would be better, but I
