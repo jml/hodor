@@ -176,6 +176,7 @@ cmdDeprioritize item = do
   replaceTodoFile newTodoFile
   reportEvents events
 
+-- XXX: Can probably change the liftM thing to proper applicative style? At least try it.
 
 cmdAppend :: Int -> [String] -> HodorM ()
 cmdAppend item xs = do
