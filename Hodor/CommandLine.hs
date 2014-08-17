@@ -8,6 +8,7 @@ import Options.Applicative
 
 import Hodor.Commands
 import Hodor.Config
+import Hodor.Types (Priority, makePriority)
 
 
 data Options = Options {
@@ -65,21 +66,27 @@ hodorCommands = invertAssoc [
     pri     = info priOptions (progDesc "prioritize an item")
     undo    = info undoOptions (progDesc "mark item as not done")
 
-    addOptions     = AddCommand <$> wordsOption
-    appendOptions  = AppendCommand <$> itemOption <*> wordsOption
-    depriOptions   = DeprioritizeCommand <$> itemOption
-    doOptions      = DoCommand <$> itemsOption
+    addOptions     = AddCommand <$> wordArgs
+    appendOptions  = AppendCommand <$> itemArg <*> wordArgs
+    depriOptions   = DeprioritizeCommand <$> itemArg
+    doOptions      = DoCommand <$> itemArgs
     listOptions    = ListCommand <$> many (argument str (metavar "FILTERS..."))
-    prependOptions = PrependCommand <$> itemOption <*> wordsOption
-    priOptions     = PrioritizeCommand <$> itemOption <*> (argument str (metavar "PRIORITY"))
-    undoOptions    = UndoCommand <$> itemsOption
+    prependOptions = PrependCommand <$> itemArg <*> wordArgs
+    priOptions     = PrioritizeCommand <$> itemArg <*> priArg
+    undoOptions    = UndoCommand <$> itemArgs
 
-    itemOption = argument auto (metavar "ITEM")
-    itemsOption = some itemOption
-    wordsOption = many (argument str (metavar "WORDS..."))
+    itemArg  = argument auto (metavar "ITEM")
+    itemArgs = some itemArg
+    priArg   = argument parsePriority (metavar "PRIORITY")
+    wordArgs = many (argument str (metavar "WORDS..."))
 
 
--- XXX: Specific reader for priority (i.e. delete Commands.getPriority)
+parsePriority :: Monad m => String -> m Priority
+parsePriority (c:[]) =
+  case makePriority c of
+    Just p  -> return p
+    Nothing -> parsePriority []
+parsePriority x      = fail $ "Invalid priority: " ++ x
 
 
 defaultConfigFile :: FilePath

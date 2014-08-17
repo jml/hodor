@@ -54,7 +54,6 @@ import Hodor.Types (
   hasPriority,
   isDone,
   filterItems,
-  makePriority,
   numItems,
   Priority,
   )
@@ -82,7 +81,7 @@ data Command =
   ArchiveCommand |
   ListContextCommand |
   ListProjectCommand |
-  PrioritizeCommand Int String |
+  PrioritizeCommand Int Priority |
   DeprioritizeCommand Int |
   AppendCommand Int [String] |
   PrependCommand Int [String]
@@ -165,9 +164,9 @@ cmdUndo items = do
   reportEvents doneItems
 
 
-cmdPrioritize :: Int -> String -> HodorM ()
+cmdPrioritize :: Int -> Priority -> HodorM ()
 cmdPrioritize item p = do
-  (newTodoFile, events) <- liftM prioritizeItem (getPriority p) `ap` loadTodoFile `ap` (return item)
+  (newTodoFile, events) <- liftM prioritizeItem (return p) `ap` loadTodoFile `ap` (return item)
   replaceTodoFile newTodoFile
   reportEvents events
 
@@ -229,14 +228,6 @@ _colorizeTodo i t
   | hasPriority t = todoText <> fore white <> bold
   | otherwise     = todoText <> fore white
   where todoText = fromText $ pack $ formatTodo i t
-
-
-getPriority :: MonadError String m => String -> m Priority
-getPriority (c:[]) =
-  case makePriority c of
-    Just p  -> return p
-    Nothing -> getPriority []
-getPriority x      = throwError $ "Invalid priority: " ++ x
 
 
 -- XXX: Making this separate because an atomic write would be better, but I
