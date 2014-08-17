@@ -4,7 +4,7 @@
 
 module Hodor.Commands where
 
-import Control.Applicative (Applicative)
+import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
 import Data.Maybe (isJust, isNothing)
@@ -122,18 +122,15 @@ cmdListPriority = listItemsCommand hasPriority
 
 listItemsCommand :: (TodoItem -> Bool) -> HodorM ()
 listItemsCommand p = do
-  -- ACTION: read file
   todoFile <- loadTodoFile
   let items = filterItems p todoFile
-  -- ACTION: display output
   printTodos items
   reportEvents [Listed todoFile (length items)]
 
 
 cmdAdd :: [String] -> HodorM ()
 cmdAdd args = do
-  (item, events) <- liftM addItem getDateAdded `ap` loadTodoFile `ap` (return args)
-  -- ACTION: append item
+  (item, events) <- addItem <$> getDateAdded <*> loadTodoFile <*> (pure args)
   appendTodoItem item
   reportEvents events
 
@@ -143,7 +140,7 @@ cmdArchive = do
   todoFile <- loadTodoFile
   let (newTodoFile, doneItems) = archive todoFile
       doneString = unlines . map unparse $ doneItems
-  donePath <- liftM doneFilePath ask
+  donePath <- doneFilePath <$> ask
   liftIO $ appendFile donePath doneString
   replaceTodoFile newTodoFile
   liftIO $ putStr doneString
@@ -152,36 +149,35 @@ cmdArchive = do
 
 cmdMarkAsDone :: [Int] -> HodorM ()
 cmdMarkAsDone items = do
-  (newTodoFile, doneItems) <- liftM doItems (liftIO today) `ap` loadTodoFile `ap` (return items)
+  (newTodoFile, doneItems) <- doItems <$> (liftIO today) <*> loadTodoFile <*> (pure items)
   replaceTodoFile newTodoFile
   reportEvents doneItems
 
 
 cmdUndo :: [Int] -> HodorM ()
 cmdUndo items = do
-  (newTodoFile, doneItems) <- liftM undoItems loadTodoFile `ap` (return items)
+  (newTodoFile, doneItems) <- undoItems <$> loadTodoFile <*> (pure items)
   replaceTodoFile newTodoFile
   reportEvents doneItems
 
 
 cmdPrioritize :: Int -> Priority -> HodorM ()
 cmdPrioritize item p = do
-  (newTodoFile, events) <- liftM prioritizeItem (return p) `ap` loadTodoFile `ap` (return item)
+  (newTodoFile, events) <- prioritizeItem <$> (pure p) <*> loadTodoFile <*> (pure item)
   replaceTodoFile newTodoFile
   reportEvents events
 
 
 cmdDeprioritize :: Int -> HodorM ()
 cmdDeprioritize item = do
-  (newTodoFile, events) <- liftM deprioritizeItem loadTodoFile `ap` (return item)
+  (newTodoFile, events) <- deprioritizeItem <$> loadTodoFile <*> (pure item)
   replaceTodoFile newTodoFile
   reportEvents events
 
--- XXX: Can probably change the liftM thing to proper applicative style? At least try it.
 
 cmdAppend :: Int -> [String] -> HodorM ()
 cmdAppend item xs = do
-  (newTodoFile, events) <- liftM appendItem (getText xs) `ap` loadTodoFile `ap` (return item)
+  (newTodoFile, events) <- appendItem <$> (getText xs) <*> loadTodoFile <*> (pure item)
   replaceTodoFile newTodoFile
   reportEvents events
   where getText [] = throwError "Must provide text to append"
@@ -190,7 +186,7 @@ cmdAppend item xs = do
 
 cmdPrepend :: Int -> [String] -> HodorM ()
 cmdPrepend item xs = do
-  (newTodoFile, events) <- liftM prependItem (getText xs) `ap` loadTodoFile `ap` (return item)
+  (newTodoFile, events) <- prependItem <$> (getText xs) <*> loadTodoFile <*> (pure item)
   replaceTodoFile newTodoFile
   reportEvents events
   where getText [] = throwError "Must provide text to prepend"
@@ -212,7 +208,7 @@ cmdListProjects = do
 -- XXX: NumberedTodoItem
 printTodos :: [(Int, TodoItem)] -> HodorM ()
 printTodos items = do
-  useColor <- liftM colorEnabled ask
+  useColor <- colorEnabled <$> ask
   case useColor of
     False -> liftIO . putStr . unlines . map (uncurry formatTodo) . sortWith snd $ items
     True -> _printTodosColor items
@@ -238,7 +234,7 @@ replaceFile = writeFile
 
 loadTodoFile :: HodorM TodoFile
 loadTodoFile = do
-  path <- liftM todoFilePath ask
+  path <- todoFilePath <$> ask
   expanded <- liftIO $ expandUser path
   contents <- liftIO $ readFile expanded
   case parseTodoFile expanded contents of
@@ -248,13 +244,13 @@ loadTodoFile = do
 
 replaceTodoFile :: TodoFile -> HodorM ()
 replaceTodoFile newTodoFile = do
-  path <- liftM todoFilePath ask
+  path <- todoFilePath <$> ask
   liftIO $ replaceFile path $ unparse newTodoFile
 
 
 appendTodoItem :: String -> HodorM ()
 appendTodoItem item = do
-  todoFileName <- liftM todoFilePath ask
+  todoFileName <- todoFilePath <$> ask
   liftIO $ appendFile todoFileName $ item
 
 
@@ -268,18 +264,17 @@ eventItemsShown file items = appMessage $ printf "%d of %d items shown" (length 
 
 getDateAdded :: HodorM (Maybe Day)
 getDateAdded = do
-  addDate <- liftM dateOnAdd ask
+  addDate <- dateOnAdd <$> ask
   case addDate of
-    True -> liftM Just (liftIO today)
-    False -> return Nothing
+    True -> Just <$> (liftIO today)
+    False -> pure Nothing
 
 
 today :: IO Day
-today = localDay `fmap` zonedTimeToLocalTime `fmap` getZonedTime
+today = localDay <$> zonedTimeToLocalTime <$> getZonedTime
 
 
 -- XXX: Handle 'auto-archive' case
--- XXX: Colorize
 -- XXX: Try to get the commands out of IO
 --      - they could take Todo, Done and return new Todo, Done
 --        - that would avoid cheap writes for 'add' (which currently just append)
