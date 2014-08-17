@@ -51,8 +51,8 @@ hodorOpts argv =
 
 
 usageError :: [String] -> UsageError
-usageError errs = concat errs ++ usageInfo header options
-                  where header = "Usage: hodor [OPTION...] "
+usageError errs = concat errs ++ usageInfo hdr options
+                  where hdr = "Usage: hodor [OPTION...] "
 
 
 defaultConfigFile :: FilePath
@@ -106,7 +106,7 @@ commands = M.fromList [
 getCommand :: MonadError UsageError m => Maybe String -> [String] -> m (HodorCommand, [String])
 getCommand _ (name:rest) =
   case M.lookup name commands of
-    Just command -> return (command, rest)
+    Just cmd -> return (cmd, rest)
     Nothing -> throwError $ usageError ["No such command: ", name, "\n"]
 getCommand (Just cmd) [] = getCommand Nothing [cmd]
 getCommand Nothing    _  = throwError $ usageError ["Must specify a command\n"]
