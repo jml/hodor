@@ -5,13 +5,14 @@ module Hodor.Commands where
 import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
-import Data.Maybe (isJust, isNothing)
+import Data.Maybe (isJust, isNothing, fromMaybe)
 import Data.Monoid
 import Data.Text (pack)
 import Data.Time (
   Day,
   getZonedTime,
   localDay,
+  showGregorian,
   zonedTimeToLocalTime
   )
 import GHC.Exts (sortWith)
@@ -49,11 +50,16 @@ import Hodor.Types (
   allContexts,
   allProjects,
   archive,
+  dateCompleted,
+  dateCreated,
+  description,
   hasPriority,
   isDone,
+  isPriority,
   filterItems,
   numItems,
   Priority,
+  priority,
   )
 
 
@@ -221,11 +227,20 @@ _colorizeTodo i t
   | isDone t      = todoText <> fore grey
   | hasPriority t = todoText <> bold
   | otherwise     = todoText
-  where todoText = _displayTodo i t
+  where todoText = fromText $ pack $ _displayTodo i t
 
 
-_displayTodo :: Int -> TodoItem -> Chunk
-_displayTodo i t = fromText $ pack $ formatTodo i t
+-- XXX: There's probably a really nice table display library out there.
+_displayTodo :: Int -> TodoItem -> String
+_displayTodo i t =
+  concat $ case (dateCompleted t) of
+    Nothing -> [
+      printf "%02d " i, priorityBit, dateBit, " ", description t]
+    Just completed -> [
+      printf "%02d  x  " i, unparse completed, unparse (dateCreated t), (description t)]
+  where
+    dateBit = fromMaybe "          " (showGregorian <$> dateCreated t)
+    priorityBit = if (isPriority (priority t)) then unparse (priority t) else "    "
 
 
 -- XXX: Making this separate because an atomic write would be better, but I
