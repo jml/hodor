@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-
 module Hodor.CommandLine where
 
 import Data.Maybe (fromMaybe)
