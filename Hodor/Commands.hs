@@ -119,7 +119,8 @@ cmdList args =  listItemsCommand (andP matchers)
     matchers = map matcher (filter (not . null) args)
     matcher ('~':arg) = isNothing . matchTodoWithRegex arg
     matcher arg = isJust . matchTodoWithRegex arg
-    matchTodoWithRegex arg = matchRegex (mkRegex arg) . unparse
+    -- ^ and $ do as expected, case insensitive
+    matchTodoWithRegex arg = matchRegex (mkRegexWithOpts arg True False) . unparse
 
 
 cmdListPriority :: HodorM ()
