@@ -7,13 +7,10 @@ module Hodor.Parser (
   todoTxtLine
   ) where
 
-import Control.Monad.Error (Error, strMsg)
 import Data.Time (Day, fromGregorian)
-import Text.Parsec hiding (ParseError)
+import Text.Parsec
 import Text.Parsec.String (Parser)
-import qualified Text.Parsec as P
 
-import Hodor.Functional (onLeft, unleft)
 import Hodor.Types (
   makeTodoFile,
   noPriority,
@@ -24,29 +21,17 @@ import Hodor.Types (
   )
 
 
-newtype ParseError = ParseError P.ParseError
-                     deriving (Show)
-
-instance Eq ParseError where
-  (==) a b = show a == show b
-
-
-instance Error ParseError where
-  strMsg = ParseError . unleft . makeParseError
-    where makeParseError s = parse (fail s) "" []
-
-
 parseTodoFile :: FilePath -> String -> Either ParseError TodoFile
 parseTodoFile filename contents =
   fmap (makeTodoFile filename) (parseTodoTxt filename contents)
 
 
 parseTodoTxt :: FilePath -> String -> Either ParseError [TodoItem]
-parseTodoTxt f = onLeft ParseError . parse todoTxtFile f
+parseTodoTxt f = parse todoTxtFile f
 
 
 parseTodoLine :: String -> Either ParseError TodoItem
-parseTodoLine = onLeft ParseError . parse todoTxtLine "(line)"
+parseTodoLine = parse todoTxtLine "(line)"
 
 
 todoTxtFile :: Parser [TodoItem]

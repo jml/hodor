@@ -322,3 +322,4 @@ today = localDay <$> zonedTimeToLocalTime <$> getZonedTime
 --      - some commands do reports too, so need output
 --      - perhaps could define some kind of monad that wraps all of this up?
 --      - probably best to write more of the commands first
+
