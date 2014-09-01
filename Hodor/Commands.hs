@@ -58,7 +58,6 @@ import Hodor.Types (
   getPriority,
   hasPriority,
   isDone,
-  isPriority,
   filterItems,
   numItems,
   Priority,
@@ -114,12 +113,11 @@ dispatchCommand (AppendCommand item wds)     = cmdAppend item wds
 dispatchCommand (PrependCommand item wds)    = cmdPrepend item wds
 
 
--- XXX: Negative filters have been broken by switch to optparse-applicative.
 cmdList :: [String] -> HodorM ()
 cmdList args =  listItemsCommand (andP matchers)
   where
     matchers = map matcher (filter (not . null) args)
-    matcher ('-':arg) = isNothing . matchTodoWithRegex arg
+    matcher ('~':arg) = isNothing . matchTodoWithRegex arg
     matcher arg = isJust . matchTodoWithRegex arg
     matchTodoWithRegex arg = matchRegex (mkRegex arg) . unparse
 
