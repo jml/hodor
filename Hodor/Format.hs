@@ -66,8 +66,8 @@ formatEvent' Prioritized i o t =
        then printf "%d already prioritized %s." i (format oldPriority)
        else printf "%d re-prioritized from %s to %s." i (format oldPriority) (format newPriority)
   else printf "%d prioritized %s." i (format newPriority)
-  where oldPriority = priority o
-        newPriority = priority t
+  where oldPriority = itemPriority o
+        newPriority = itemPriority t
 
 formatEvent' Deprioritized i o _ | hasPriority o = printf "%d deprioritized." i
                                  | otherwise     = printf "%d is not prioritized." i

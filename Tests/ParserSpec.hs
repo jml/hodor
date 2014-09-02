@@ -62,7 +62,7 @@ lineParserSpec =
       it "extracts contexts" $ do
         shouldHave parsed contexts [Context "home"]
       it "extracts priority" $ do
-        shouldHave parsed priority (unsafeMakePriority 'B')
+        shouldHave parsed itemPriority (unsafeMakePriority 'B')
       it "can be described" $ do
         shouldHave parsed unparse input
 

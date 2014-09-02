@@ -57,10 +57,10 @@ import Hodor.Types (
   getPriority,
   hasPriority,
   isDone,
+  itemPriority,
   filterItems,
   numItems,
   Priority,
-  priority,
   )
 
 
@@ -253,7 +253,7 @@ _displayTodo i t =
     dateChunk = fromText . pack . showGregorian
     dateBit = fromMaybe "          " (dateChunk <$> dateCreated t)
     priorityBit =
-      case getPriority (priority t) of
+      case getPriority (itemPriority t) of
         Nothing  -> "    "
         Just 'A' -> "(A) " <> fore red
         Just x   -> fromText $ pack $ '(':x:") "

@@ -15,6 +15,13 @@ import qualified Data.Sequence as S
 data Priority = Pri Char | NoPri deriving (Show, Eq, Ord)
 
 
+priority :: (Char -> a) -> a -> Priority -> a
+priority pri nopri p =
+  case p of
+   Pri c -> pri c
+   NoPri -> nopri
+
+
 makePriority :: Char -> Maybe Priority
 makePriority c | isAsciiUpper c = Just . Pri $ c
                | isAsciiLower c = Just . Pri . toUpper $ c
@@ -30,13 +37,10 @@ noPriority :: Priority
 noPriority = NoPri
 
 isPriority :: Priority -> Bool
-isPriority (Pri _) = True
-isPriority _       = False
-
+isPriority = priority (const True) False
 
 getPriority :: Priority -> Maybe Char
-getPriority (Pri x) = Just x
-getPriority _       = Nothing
+getPriority = priority Just Nothing
 
 
 data Project = Project String deriving (Eq, Ord, Show)
@@ -59,7 +63,7 @@ toContext _             = Nothing
 
 data TodoItem = TodoItem {
   dateCompleted :: Maybe Day,
-  priority :: Priority,
+  itemPriority :: Priority,
   dateCreated :: Maybe Day,
   description :: String
 } deriving (Eq, Ord)
@@ -92,7 +96,7 @@ isDone :: TodoItem -> Bool
 isDone = isJust . dateCompleted
 
 hasPriority :: TodoItem -> Bool
-hasPriority = isPriority . priority
+hasPriority = isPriority . itemPriority
 
 markAsDone :: TodoItem -> Day -> TodoItem
 markAsDone item day | isDone item = item
@@ -104,7 +108,7 @@ markAsUndone item = item { dateCompleted = Nothing }
 
 
 prioritize :: TodoItem -> Priority -> TodoItem
-prioritize item p = item { priority = p }
+prioritize item p = item { itemPriority = p }
 
 
 amendDescription :: TodoItem -> String -> TodoItem
@@ -223,7 +227,7 @@ instance Unparse Priority where
 instance Unparse TodoItem where
   unparse item = concat $
     case (dateCompleted item) of
-      Nothing -> [unparse (priority item), unparse (dateCreated item), (description item)]
+      Nothing -> [unparse (itemPriority item), unparse (dateCreated item), (description item)]
       Just completed -> ["x ", unparse completed, unparse (dateCreated item), (description item)]
 
 
