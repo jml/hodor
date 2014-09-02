@@ -11,6 +11,7 @@ module Hodor.Config (
   todoFilePath
   ) where
 
+import Data.Maybe (fromMaybe)
 import Data.Yaml
 
 import Hodor.File (expandUser)
@@ -53,9 +54,7 @@ loadConfigFile :: FilePath -> IO Config
 loadConfigFile path = do
   expandedPath <- expandUser path
   config <- decodeFile expandedPath
-  expandConfigPaths $ case config of
-    Just c -> c
-    Nothing -> defaultConfig
+  expandConfigPaths $ fromMaybe defaultConfig config
 
 
 expandConfigPaths :: Config -> IO Config
