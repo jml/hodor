@@ -3,6 +3,7 @@ module Hodor.File (
   readTodoFile,
   ) where
 
+import Control.Applicative
 import System.Directory (getHomeDirectory)
 import System.Posix.User (getUserEntryForName, homeDirectory)
 
@@ -11,9 +12,7 @@ import Hodor.Types (TodoFile)
 
 
 readTodoFile :: String -> IO (Either ParseError TodoFile)
-readTodoFile filename = do
-  contents <- readFile filename
-  return $ parseTodoFile filename contents
+readTodoFile filename = parseTodoFile filename <$> readFile filename
 
 
 -- XXX: Move to some utility class

@@ -46,7 +46,6 @@ import Hodor.Config (
   )
 import Hodor.File (expandUser)
 import Hodor.Format (appMessage, Formattable, format, formatTodo)
-import Hodor.Functional (andP)
 import Hodor.Parser (parseTodoFile)
 import Hodor.Types (
   allContexts,
@@ -114,7 +113,7 @@ dispatchCommand (PrependCommand item wds)    = cmdPrepend item wds
 
 
 cmdList :: [String] -> HodorM ()
-cmdList args =  listItemsCommand (andP matchers)
+cmdList args =  listItemsCommand (\x -> all ($x) matchers)
   where
     matchers = map matcher (filter (not . null) args)
     matcher ('~':arg) = isNothing . matchTodoWithRegex arg
