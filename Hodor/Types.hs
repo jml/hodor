@@ -12,13 +12,7 @@ import Data.Time (Day, showGregorian)
 import qualified Data.Sequence as S
 
 
-data Priority = Pri Char | NoPri deriving (Show, Eq)
-
-
-instance Ord Priority where
-  NoPri <= x = (x == NoPri)
-  _ <= NoPri = True
-  (Pri x) <= (Pri y) = x < y
+data Priority = Pri Char | NoPri deriving (Show, Eq, Ord)
 
 
 makePriority :: Char -> Maybe Priority
