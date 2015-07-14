@@ -86,12 +86,15 @@ hodorCommands = invertAssoc [
     wordArgs = many (argument str (metavar "WORDS..."))
 
 
-parsePriority :: Monad m => String -> m Priority
-parsePriority (c:[]) =
-  case makePriority c of
-    Just p  -> return p
-    Nothing -> parsePriority []
-parsePriority x      = fail $ "Invalid priority: " ++ x
+parsePriority :: ReadM Priority
+parsePriority = do
+  prio <- str
+  case prio of
+    (c:[]) ->
+      case makePriority c of
+        Just p  -> return p
+        Nothing -> fail $ "Invalid priority: " ++ prio
+    otherwise -> fail $ "Invalid priority: " ++ prio
 
 
 defaultConfigFile :: FilePath

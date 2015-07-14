@@ -6,10 +6,10 @@ module Hodor.Commands where
 import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
+import qualified Data.ByteString as BS
 import Data.List (intersperse)
 import Data.Maybe (isJust, isNothing, fromMaybe)
 import Data.Monoid
-import Data.Text (pack)
 import Data.Time (
   Day,
   getZonedTime,
@@ -223,14 +223,14 @@ printTodos items = do
 
 _printTodosColor :: [(Int, TodoItem)] -> HodorM ()
 _printTodosColor todos = do
-  term <- liftIO termFromEnv
-  liftIO . mapM_ (putChunks term . uncurry _colorizeTodo) . sortWith snd $ todos
+  let chunks = concatMap (uncurry _colorizeTodo) (sortWith snd todos)
+  liftIO $ mapM_ BS.putStr (chunksToByteStrings toByteStringsColors256 chunks)
 
 
-_colorizeTodo :: Int -> TodoItem -> [Chunk]
+_colorizeTodo :: Int -> TodoItem -> [Chunk String]
 _colorizeTodo i t
-  | isDone t      = [mconcat todoText <> fore grey]
-  | hasPriority t = map (<> bold) todoText
+  | isDone t      = [mconcat todoText & fore grey]
+  | hasPriority t = map (& bold) todoText
   | otherwise     = todoText
   where todoText = _displayTodo i t
 
@@ -239,29 +239,29 @@ _colorizeTodo i t
 -- XXX: There's probably a really nice table display library out there.
 -- XXX: make it possible to configure colours for specific contexts and projects
 -- XXX: The structure of this is kind of hideous: clean it up.
-_displayTodo :: Int -> TodoItem -> [Chunk]
+_displayTodo :: Int -> TodoItem -> [Chunk String]
 _displayTodo i t =
   case (dateCompleted t) of
-    Nothing -> [
-      fromText $ pack $ printf "%02d " i,
-      priorityBit,
-      dateBit, " "] ++ descriptionChunks ++ ["\n"]
-    Just completed -> [
-      fromText $ pack $ printf "%02d  x  " i,
-      dateChunk completed,
-      " "] ++ descriptionChunks ++ ["\n"]
+    Nothing -> [ chunk $ printf "%02d " i
+               , priorityBit
+               , dateBit
+               , chunk " "
+               ] ++ descriptionChunks ++ [chunk "\n"]
+    Just completed -> [ chunk $ printf "%02d  x  " i
+                      , dateChunk completed
+                      , chunk " "] ++ descriptionChunks ++ [chunk "\n"]
   where
-    dateChunk = fromText . pack . showGregorian
-    dateBit = fromMaybe "          " (dateChunk <$> dateCreated t)
+    dateChunk = chunk . showGregorian
+    dateBit = fromMaybe (chunk "          ") (dateChunk <$> dateCreated t)
     priorityBit =
       case getPriority (priority t) of
-        Nothing  -> "    "
-        Just 'A' -> "(A) " <> fore red
-        Just x   -> fromText $ pack $ '(':x:") "
-    descriptionChunks = intersperse (fromText " ") $ map chunkWord (words $ description t)
-    chunkWord xs@('+':_) = (fromText $ pack xs) <> fore brightBlue
-    chunkWord xs@('@':_) = (fromText $ pack xs) <> fore green
-    chunkWord xs         = fromText $ pack xs
+        Nothing  -> chunk "    "
+        Just 'A' -> chunk "(A) " & fore red
+        Just x   -> chunk $ '(':x:") "
+    descriptionChunks = intersperse (chunk " ") $ map chunkWord (words $ description t)
+    chunkWord xs@('+':_) = chunk xs & fore brightBlue
+    chunkWord xs@('@':_) = chunk xs & fore green
+    chunkWord xs         = chunk xs
 
 
 -- XXX: Making this separate because an atomic write would be better, but I
