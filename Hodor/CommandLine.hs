@@ -1,7 +1,6 @@
 module Hodor.CommandLine where
 
 import Data.Maybe (fromMaybe)
-import Data.Monoid (mconcat)
 import Options.Applicative
 
 import Hodor.Commands
@@ -37,8 +36,8 @@ subcommands cmds = subparser $ mconcat $ map (uncurry command) cmds
 
 -- XXX: Find out if there's a better way to do this.
 invertAssoc :: [(a, [b])] -> [(b, a)]
-invertAssoc alist =
-  concatMap reverseFlatten alist
+invertAssoc =
+  concatMap reverseFlatten
   where reverseFlatten (x, ys) = [(y, x) | y <- ys]
 
 
@@ -82,12 +81,12 @@ hodorCommands = invertAssoc [
 
     itemArg  = argument auto (metavar "ITEM")
     itemArgs = some itemArg
-    priArg   = argument parsePriority (metavar "PRIORITY")
+    priArg   = argument (str >>= parsePriority) (metavar "PRIORITY")
     wordArgs = many (argument str (metavar "WORDS..."))
 
 
 parsePriority :: Monad m => String -> m Priority
-parsePriority (c:[]) =
+parsePriority [c] =
   case makePriority c of
     Just p  -> return p
     Nothing -> parsePriority []
@@ -129,8 +128,8 @@ getCommand cfg opts =
   where
     -- XXX: A bit of a hack to a) extract command by name; b) display some
     -- kind of error on result.
-    getCommandByName name =
-      execParserWithArgs (info (subcommands hodorCommands) idm) name
+    getCommandByName =
+      execParserWithArgs (info (subcommands hodorCommands) idm)
 
 
 main :: IO ()

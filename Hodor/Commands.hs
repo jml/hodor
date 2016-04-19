@@ -3,13 +3,11 @@
 
 module Hodor.Commands where
 
-import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
+import qualified Data.ByteString as BS
 import Data.List (intersperse)
 import Data.Maybe (isJust, isNothing, fromMaybe)
-import Data.Monoid
-import Data.Text (pack)
 import Data.Time (
   Day,
   getZonedTime,
@@ -137,7 +135,7 @@ listItemsCommand p = do
 
 cmdAdd :: [String] -> HodorM ()
 cmdAdd args = do
-  (item, events) <- addItem <$> getDateAdded <*> loadTodoFile <*> (pure args)
+  (item, events) <- addItem <$> getDateAdded <*> loadTodoFile <*> pure args
   appendTodoItem item
   reportEvents events
 
@@ -156,35 +154,35 @@ cmdArchive = do
 
 cmdMarkAsDone :: [Int] -> HodorM ()
 cmdMarkAsDone items = do
-  (newTodoFile, doneItems) <- doItems <$> (liftIO today) <*> loadTodoFile <*> (pure items)
+  (newTodoFile, doneItems) <- doItems <$> liftIO today <*> loadTodoFile <*> pure items
   replaceTodoFile newTodoFile
   reportEvents doneItems
 
 
 cmdUndo :: [Int] -> HodorM ()
 cmdUndo items = do
-  (newTodoFile, doneItems) <- undoItems <$> loadTodoFile <*> (pure items)
+  (newTodoFile, doneItems) <- undoItems <$> loadTodoFile <*> pure items
   replaceTodoFile newTodoFile
   reportEvents doneItems
 
 
 cmdPrioritize :: Int -> Priority -> HodorM ()
 cmdPrioritize item p = do
-  (newTodoFile, events) <- prioritizeItem <$> (pure p) <*> loadTodoFile <*> (pure item)
+  (newTodoFile, events) <- prioritizeItem <$> pure p <*> loadTodoFile <*> pure item
   replaceTodoFile newTodoFile
   reportEvents events
 
 
 cmdDeprioritize :: Int -> HodorM ()
 cmdDeprioritize item = do
-  (newTodoFile, events) <- deprioritizeItem <$> loadTodoFile <*> (pure item)
+  (newTodoFile, events) <- deprioritizeItem <$> loadTodoFile <*> pure item
   replaceTodoFile newTodoFile
   reportEvents events
 
 
 cmdAppend :: Int -> [String] -> HodorM ()
 cmdAppend item xs = do
-  (newTodoFile, events) <- appendItem <$> (getText xs) <*> loadTodoFile <*> (pure item)
+  (newTodoFile, events) <- appendItem <$> getText xs <*> loadTodoFile <*> pure item
   replaceTodoFile newTodoFile
   reportEvents events
   where getText [] = throwError "Must provide text to append"
@@ -193,7 +191,7 @@ cmdAppend item xs = do
 
 cmdPrepend :: Int -> [String] -> HodorM ()
 cmdPrepend item xs = do
-  (newTodoFile, events) <- prependItem <$> (getText xs) <*> loadTodoFile <*> (pure item)
+  (newTodoFile, events) <- prependItem <$> getText xs <*> loadTodoFile <*> pure item
   replaceTodoFile newTodoFile
   reportEvents events
   where getText [] = throwError "Must provide text to prepend"
@@ -201,12 +199,12 @@ cmdPrepend item xs = do
 
 
 cmdListContexts :: HodorM ()
-cmdListContexts = do
+cmdListContexts =
   allContexts <$> loadTodoFile >>= mapM_ (liftIO . putStrLn . format)
 
 
 cmdListProjects :: HodorM ()
-cmdListProjects = do
+cmdListProjects =
   allProjects <$> loadTodoFile >>= mapM_ (liftIO . putStrLn . format)
 
 
@@ -216,21 +214,24 @@ cmdListProjects = do
 printTodos :: [(Int, TodoItem)] -> HodorM ()
 printTodos items = do
   useColor <- colorEnabled <$> ask
-  case useColor of
-    False -> liftIO . putStr . unlines . map (uncurry formatTodo) . sortWith snd $ items
-    True -> _printTodosColor items
+  if useColor
+    then _printTodosColor items
+    else liftIO . putStr . unlines . map (uncurry formatTodo) . sortWith snd $ items
 
 
 _printTodosColor :: [(Int, TodoItem)] -> HodorM ()
-_printTodosColor todos = do
-  term <- liftIO termFromEnv
-  liftIO . mapM_ (putChunks term . uncurry _colorizeTodo) . sortWith snd $ todos
+_printTodosColor todos =
+  let colorized = map (uncurry _colorizeTodo) (sortWith snd todos)
+      rendered = concatMap (chunksToByteStrings toByteStringsColors256) colorized
+  in
+    liftIO $ mapM_ BS.putStr rendered
 
 
-_colorizeTodo :: Int -> TodoItem -> [Chunk]
+
+_colorizeTodo :: Int -> TodoItem -> [Chunk String]
 _colorizeTodo i t
-  | isDone t      = [mconcat todoText <> fore grey]
-  | hasPriority t = map (<> bold) todoText
+  | isDone t      = [mconcat todoText & fore grey]
+  | hasPriority t = map (& bold) todoText
   | otherwise     = todoText
   where todoText = _displayTodo i t
 
@@ -239,29 +240,29 @@ _colorizeTodo i t
 -- XXX: There's probably a really nice table display library out there.
 -- XXX: make it possible to configure colours for specific contexts and projects
 -- XXX: The structure of this is kind of hideous: clean it up.
-_displayTodo :: Int -> TodoItem -> [Chunk]
+_displayTodo :: Int -> TodoItem -> [Chunk String]
 _displayTodo i t =
-  case (dateCompleted t) of
+  case dateCompleted t of
     Nothing -> [
-      fromText $ pack $ printf "%02d " i,
+      chunk $ printf "%02d " i,
       priorityBit,
-      dateBit, " "] ++ descriptionChunks ++ ["\n"]
+      dateBit, chunk " "] ++ descriptionChunks ++ [chunk "\n"]
     Just completed -> [
-      fromText $ pack $ printf "%02d  x  " i,
+      chunk $ printf "%02d  x  " i,
       dateChunk completed,
-      " "] ++ descriptionChunks ++ ["\n"]
+      chunk " "] ++ descriptionChunks ++ [chunk "\n"]
   where
-    dateChunk = fromText . pack . showGregorian
-    dateBit = fromMaybe "          " (dateChunk <$> dateCreated t)
+    dateChunk = chunk . showGregorian
+    dateBit = fromMaybe (chunk "          ") (dateChunk <$> dateCreated t)
     priorityBit =
       case getPriority (priority t) of
-        Nothing  -> "    "
-        Just 'A' -> "(A) " <> fore red
-        Just x   -> fromText $ pack $ '(':x:") "
-    descriptionChunks = intersperse (fromText " ") $ map chunkWord (words $ description t)
-    chunkWord xs@('+':_) = (fromText $ pack xs) <> fore brightBlue
-    chunkWord xs@('@':_) = (fromText $ pack xs) <> fore green
-    chunkWord xs         = fromText $ pack xs
+        Nothing  -> chunk "    "
+        Just 'A' -> chunk "(A) " & fore red
+        Just x   -> chunk $ '(':x:") "
+    descriptionChunks = intersperse (chunk " ") $ map chunkWord (words $ description t)
+    chunkWord xs@('+':_) = chunk xs & fore brightBlue
+    chunkWord xs@('@':_) = chunk xs & fore green
+    chunkWord xs         = chunk xs
 
 
 -- XXX: Making this separate because an atomic write would be better, but I
@@ -289,7 +290,7 @@ replaceTodoFile newTodoFile = do
 appendTodoItem :: String -> HodorM ()
 appendTodoItem item = do
   todoFileName <- todoFilePath <$> ask
-  liftIO $ appendFile todoFileName $ item
+  liftIO $ appendFile todoFileName item
 
 
 reportEvents :: (Formattable e) => [e] -> HodorM ()
@@ -303,13 +304,13 @@ eventItemsShown file items = appMessage $ printf "%d of %d items shown" (length 
 getDateAdded :: HodorM (Maybe Day)
 getDateAdded = do
   addDate <- dateOnAdd <$> ask
-  case addDate of
-    True -> Just <$> (liftIO today)
-    False -> pure Nothing
+  if addDate
+    then Just <$> liftIO today
+    else pure Nothing
 
 
 today :: IO Day
-today = localDay <$> zonedTimeToLocalTime <$> getZonedTime
+today = localDay . zonedTimeToLocalTime <$> getZonedTime
 
 
 -- XXX: Handle 'auto-archive' case
