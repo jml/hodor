@@ -1,6 +1,6 @@
 # hodor
 
-*A simple-minded todo list system*
+*A simple todo list system*
 
 ## What does it do?
 
